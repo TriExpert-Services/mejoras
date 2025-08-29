@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Input } from './ui/input';
 import { supabase } from '../lib/supabase';
 import { 
   Users, 
@@ -56,6 +55,7 @@ export function AdminPanel() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAdminData();
@@ -63,9 +63,47 @@ export function AdminPanel() {
 
   const fetchAdminData = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // Fetch stats
-      const { data: users } = await supabase.auth.admin.listUsers();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(errorData.error || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      setStats(data.stats);
+      setVms(data.vms);
+      setOrders(data.orders);
+
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+      setError(error instanceof Error ? error.message : 'Error al cargar datos de admin');
+      
+      // Fallback: try to get basic data from database directly
+      await fetchBasicData();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchBasicData = async () => {
+    try {
+      // Get VM counts from database directly
       const { count: vmCount } = await supabase
         .from('vms')
         .select('*', { count: 'exact', head: true })
@@ -85,13 +123,13 @@ export function AdminPanel() {
       const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
 
       setStats({
-        totalUsers: users?.users?.length || 0,
+        totalUsers: 0, // Cannot get user count without admin API
         totalVMs: vmCount || 0,
         activeVMs: activeVMCount || 0,
         totalRevenue
       });
 
-      // Fetch VMs with user info
+      // Get VMs with basic info (no user emails)
       const { data: vmsData } = await supabase
         .from('vms')
         .select(`
@@ -108,21 +146,15 @@ export function AdminPanel() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      // Get user emails for VMs
-      const vmsWithEmails = await Promise.all(
-        (vmsData || []).map(async (vm) => {
-          const { data: user } = await supabase.auth.admin.getUserById(vm.user_id);
-          return {
-            ...vm,
-            user_email: user.user?.email || 'Desconocido',
-            vm_spec_name: (vm.vm_specs as any)?.name || 'Sin especificar'
-          };
-        })
-      );
+      const vmsBasic = (vmsData || []).map(vm => ({
+        ...vm,
+        user_email: 'Usuario',
+        vm_spec_name: Array.isArray(vm.vm_specs) ? vm.vm_specs[0]?.name : vm.vm_specs?.name || 'Sin especificar'
+      }));
 
-      setVms(vmsWithEmails);
+      setVms(vmsBasic);
 
-      // Fetch recent orders with user info
+      // Get orders with basic info
       const { data: ordersData } = await supabase
         .from('orders')
         .select(`
@@ -136,23 +168,16 @@ export function AdminPanel() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      const ordersWithEmails = await Promise.all(
-        (ordersData || []).map(async (order) => {
-          const { data: user } = await supabase.auth.admin.getUserById(order.user_id);
-          return {
-            ...order,
-            user_email: user.user?.email || 'Desconocido',
-            vm_spec_name: (order.vm_specs as any)?.name || 'Sin especificar'
-          };
-        })
-      );
+      const ordersBasic = (ordersData || []).map(order => ({
+        ...order,
+        user_email: 'Usuario',
+        vm_spec_name: Array.isArray(order.vm_specs) ? order.vm_specs[0]?.name : order.vm_specs?.name || 'Sin especificar'
+      }));
 
-      setOrders(ordersWithEmails);
+      setOrders(ordersBasic);
 
     } catch (error) {
-      console.error('Error fetching admin data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching basic data:', error);
     }
   };
 
@@ -188,9 +213,12 @@ export function AdminPanel() {
       creating: { variant: 'warning' as const, text: 'Creando' },
       pending: { variant: 'warning' as const, text: 'Pendiente' },
       error: { variant: 'destructive' as const, text: 'Error' },
+      completed: { variant: 'success' as const, text: 'Completado' },
+      processing: { variant: 'warning' as const, text: 'Procesando' },
+      failed: { variant: 'destructive' as const, text: 'Fallida' },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || { variant: 'secondary' as const, text: status };
     return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
@@ -210,54 +238,63 @@ export function AdminPanel() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel de Administración</h1>
         <p className="text-gray-600">Gestiona usuarios, VPS y órdenes de la plataforma</p>
+        
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">
+              <AlertTriangle className="h-4 w-4 inline mr-2" />
+              {error}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
+        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Usuarios Totales</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+                <p className="text-blue-100 text-sm">Usuarios Totales</p>
+                <p className="text-3xl font-bold">{stats.totalUsers}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-600" />
+              <Users className="h-10 w-10 text-blue-200" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">VPS Totales</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalVMs}</p>
+                <p className="text-green-100 text-sm">VPS Totales</p>
+                <p className="text-3xl font-bold">{stats.totalVMs}</p>
               </div>
-              <Server className="h-8 w-8 text-green-600" />
+              <Server className="h-10 w-10 text-green-200" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">VPS Activos</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeVMs}</p>
+                <p className="text-purple-100 text-sm">VPS Activos</p>
+                <p className="text-3xl font-bold">{stats.activeVMs}</p>
               </div>
-              <Activity className="h-8 w-8 text-purple-600" />
+              <Activity className="h-10 w-10 text-purple-200" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Ingresos Totales</p>
-                <p className="text-2xl font-bold text-gray-900">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-orange-100 text-sm">Ingresos Totales</p>
+                <p className="text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-orange-600" />
+              <DollarSign className="h-10 w-10 text-orange-200" />
             </div>
           </CardContent>
         </Card>
@@ -276,8 +313,9 @@ export function AdminPanel() {
                 variant="outline"
                 size="sm"
                 onClick={fetchAdminData}
+                disabled={loading}
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
             </div>
@@ -285,15 +323,18 @@ export function AdminPanel() {
           <CardContent>
             <div className="space-y-4">
               {vms.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No hay VPS creados</p>
+                <div className="text-center py-8">
+                  <Server className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No hay VPS creados</p>
+                </div>
               ) : (
                 vms.map((vm) => (
-                  <div key={vm.id} className="bg-gray-50 p-4 rounded-lg">
+                  <div key={vm.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <h4 className="font-medium">{vm.name}</h4>
+                        <h4 className="font-medium text-gray-900">{vm.name}</h4>
                         <p className="text-sm text-gray-600">{vm.user_email}</p>
-                        <p className="text-xs text-gray-500">{vm.vm_spec_name}</p>
+                        <p className="text-xs text-blue-600">{vm.vm_spec_name}</p>
                       </div>
                       {getStatusBadge(vm.status)}
                     </div>
@@ -306,6 +347,7 @@ export function AdminPanel() {
                             size="sm"
                             onClick={() => handleVMAction(vm.id, 'start')}
                             disabled={actionLoading[vm.id]}
+                            title="Iniciar VM"
                           >
                             <Play className="h-3 w-3" />
                           </Button>
@@ -316,6 +358,7 @@ export function AdminPanel() {
                             size="sm"
                             onClick={() => handleVMAction(vm.id, 'stop')}
                             disabled={actionLoading[vm.id]}
+                            title="Detener VM"
                           >
                             <Square className="h-3 w-3" />
                           </Button>
@@ -323,9 +366,14 @@ export function AdminPanel() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleVMAction(vm.id, 'delete')}
+                          onClick={() => {
+                            if (confirm('¿Estás seguro de que quieres eliminar este VM?')) {
+                              handleVMAction(vm.id, 'delete');
+                            }
+                          }}
                           disabled={actionLoading[vm.id]}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          title="Eliminar VM"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -349,15 +397,18 @@ export function AdminPanel() {
           <CardContent>
             <div className="space-y-4">
               {orders.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No hay órdenes registradas</p>
+                <div className="text-center py-8">
+                  <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No hay órdenes registradas</p>
+                </div>
               ) : (
                 orders.map((order) => (
-                  <div key={order.id} className="bg-gray-50 p-4 rounded-lg">
+                  <div key={order.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <h4 className="font-medium">${order.total_amount}</h4>
+                        <h4 className="font-medium text-gray-900">${order.total_amount}</h4>
                         <p className="text-sm text-gray-600">{order.user_email}</p>
-                        <p className="text-xs text-gray-500">{order.vm_spec_name}</p>
+                        <p className="text-xs text-blue-600">{order.vm_spec_name}</p>
                       </div>
                       {getStatusBadge(order.status)}
                     </div>
@@ -393,9 +444,10 @@ export function AdminPanel() {
             <Button
               variant="outline"
               onClick={fetchAdminData}
+              disabled={loading}
               className="flex items-center justify-center"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Actualizar Datos
             </Button>
             <Button
@@ -409,6 +461,20 @@ export function AdminPanel() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Debug Info */}
+      {error && (
+        <Card className="mt-6 border-yellow-200 bg-yellow-50">
+          <CardContent className="p-6">
+            <h4 className="font-medium text-yellow-800 mb-2">Información de Debug</h4>
+            <p className="text-sm text-yellow-700 mb-4">{error}</p>
+            <p className="text-xs text-yellow-600">
+              Tip: Verifica que las edge functions estén configuradas correctamente en Supabase.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+</invoke>
