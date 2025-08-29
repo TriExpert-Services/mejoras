@@ -53,7 +53,7 @@ export function SuccessPage() {
           )}
           
           <Button onClick={handleContinue} className="w-full bg-blue-600 hover:bg-blue-700">
-            Ir al Panel de Control
+            Ver mis VPS
           </Button>
         </CardContent>
       </Card>

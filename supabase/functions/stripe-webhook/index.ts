@@ -84,7 +84,7 @@ async function handleEvent(event: Stripe.Event) {
       console.info(`Processing ${isSubscription ? 'subscription' : 'one-time payment'} checkout session`);
     }
 
-    const { mode, payment_status } = stripeData as Stripe.Checkout.Session;
+    const { mode, payment_status, id: sessionId } = stripeData as Stripe.Checkout.Session;
 
     if (isSubscription) {
       console.info(`Starting subscription sync for customer: ${customerId}`);
@@ -110,6 +110,7 @@ async function handleEvent(event: Stripe.Event) {
           currency,
           payment_status,
           status: 'completed', // assuming we want to mark it as completed since payment is successful
+          session_id: sessionId,
         });
 
         if (orderError) {
@@ -120,7 +121,106 @@ async function handleEvent(event: Stripe.Event) {
       } catch (error) {
         console.error('Error processing one-time payment:', error);
       }
+    } else {
+      // Handle subscription checkout completion - create order and trigger VM provisioning
+      try {
+        const session = stripeData as Stripe.Checkout.Session;
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+        const priceId = lineItems.data[0]?.price?.id;
+        
+        if (!priceId) {
+          throw new Error('No price ID found in session');
+        }
+
+        // Get VM specs for this price
+        const { data: vmSpec, error: specError } = await supabase
+          .from('vm_specs')
+          .select('*')
+          .eq('price_id', priceId)
+          .single();
+
+        if (specError || !vmSpec) {
+          throw new Error(`VM spec not found for price ID: ${priceId}`);
+        }
+
+        // Get user from customer
+        const { data: customer, error: customerError } = await supabase
+          .from('stripe_customers')
+          .select('user_id')
+          .eq('customer_id', customerId)
+          .single();
+
+        if (customerError || !customer) {
+          throw new Error(`User not found for customer: ${customerId}`);
+        }
+
+        // Create order record
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: customer.user_id,
+            stripe_session_id: session.id,
+            stripe_payment_intent: session.payment_intent as string,
+            vm_spec_id: vmSpec.id,
+            status: 'pending',
+            total_amount: (session.amount_total || 0) / 100, // Convert cents to dollars
+            currency: session.currency || 'usd',
+          })
+          .select()
+          .single();
+
+        if (orderError || !order) {
+          throw new Error(`Failed to create order: ${orderError?.message}`);
+        }
+
+        // Trigger VM provisioning
+        EdgeRuntime.waitUntil(triggerVMProvisioning(order.id));
+
+        console.info(`Created order ${order.id} and triggered VM provisioning`);
+
+      } catch (error: any) {
+        console.error('Error processing subscription checkout:', error);
+      }
     }
+  }
+}
+
+async function triggerVMProvisioning(orderId: string) {
+  try {
+    const provisionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/vm-provisioner`;
+    
+    const response = await fetch(provisionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        orderId,
+        action: 'provision',
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`VM provisioning failed: ${error}`);
+    }
+
+    const result = await response.json();
+    console.log(`VM provisioning triggered successfully for order ${orderId}:`, result);
+
+  } catch (error: any) {
+    console.error(`Failed to trigger VM provisioning for order ${orderId}:`, error);
+    
+    // Update order status to failed
+    await supabase
+      .from('orders')
+      .update({ 
+        status: 'failed', 
+        error_message: error.message,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
   }
 }
 

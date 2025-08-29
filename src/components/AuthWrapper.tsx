@@ -90,6 +90,14 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.location.href = '/dashboard'}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Panel de Control
+              </Button>
               <span className="text-sm text-gray-600">
                 {user.email}
               </span>

@@ -2,14 +2,26 @@ import React from 'react';
 import { AuthWrapper } from './components/AuthWrapper';
 import { ProductGrid } from './components/ProductGrid';
 import { SuccessPage } from './components/SuccessPage';
+import { VMDashboard } from './components/VMDashboard';
 
 function App() {
   // Check if we're on the success page
   const isSuccessPage = window.location.pathname === '/success' || 
                        window.location.search.includes('session_id');
 
+  // Check if we're on the dashboard page
+  const isDashboardPage = window.location.pathname === '/dashboard';
+
   if (isSuccessPage) {
     return <SuccessPage />;
+  }
+
+  if (isDashboardPage) {
+    return (
+      <AuthWrapper>
+        <VMDashboard />
+      </AuthWrapper>
+    );
   }
 
   return (
