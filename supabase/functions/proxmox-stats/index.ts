@@ -222,6 +222,7 @@ async function getProxmoxStats(config: any) {
       
       // Server metrics
       uptime: nodeData?.uptime || 0,
+      uptime_formatted: formatUptime(nodeData?.uptime || 0),
       cpu_usage: (nodeData?.cpu || 0) * 100,
       cpu_cores: nodeData?.cpuinfo?.cpus || 8,
       
@@ -251,6 +252,13 @@ async function getProxmoxStats(config: any) {
         storage_available: !!allStorageData,
         storage_count: storageDetails.length,
         storage_details: storageDetails
+        vm_list: vmList ? vmList.map((vm: any) => ({
+          vmid: vm.vmid,
+          name: vm.name,
+          status: vm.status,
+          cpu: vm.cpu,
+          memory: vm.mem
+        })) : []
       }
     };
 
@@ -258,6 +266,8 @@ async function getProxmoxStats(config: any) {
     console.log('Connected successfully:', result.connected);
     console.log('CPU usage:', result.cpu_usage);
     console.log('Memory usage:', result.memory_usage_percent);
+    console.log('VMs:', `${result.active_vms}/${result.total_vms}`);
+    console.log('Uptime:', result.uptime_formatted);
     
     return result;
 
@@ -300,4 +310,16 @@ async function makeProxmoxRequest(config: any, endpoint: string, method = 'GET',
   const data = await response.json();
   console.log('Response data structure:', typeof data, Object.keys(data || {}));
   return data.data;
+}
+function formatUptime(seconds: number): string {
+  if (!seconds || seconds === 0) return 'Detenido';
+  
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${seconds}s`;
 }
