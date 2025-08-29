@@ -375,8 +375,8 @@ async function generateVMID(): Promise<number> {
     .order('proxmox_vmid', { ascending: false })
     .limit(1);
 
-  const lastVmId = vms && vms.length > 0 ? vms[0].proxmox_vmid : 100;
-  return (lastVmId || 100) + 1;
+  const lastVmId = vms && vms.length > 0 ? vms[0].proxmox_vmid : 109;
+  return Math.max(lastVmId + 1, 110);
 }
 
 function generatePassword(length = 16): string {
