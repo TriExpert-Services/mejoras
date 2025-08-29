@@ -113,22 +113,22 @@ export function AdminPanel() {
   useEffect(() => {
     fetchAdminData();
     fetchProxmoxStats();
-    
-    // Auto-refresh stats every 10 seconds
+  }, []);
+
+  useEffect(() => {
+    // Auto-refresh only metrics every 10 seconds (after initial load)
     const interval = setInterval(() => {
       fetchAdminData();
       fetchProxmoxStats();
     }, 10000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [stats.totalVMs]); // Only start auto-refresh after initial data is loaded
 
   const fetchAdminData = async () => {
-    // Only show refreshing indicator for subsequent updates
-    if (stats.totalVMs > 0 || vms.length > 0) {
+    // Only show refreshing indicator for subsequent updates, never initial loading after first load
+    if (!initialLoading) {
       setRefreshing(true);
-    } else {
-      setInitialLoading(true);
     }
     
     setError(null);
@@ -163,15 +163,17 @@ export function AdminPanel() {
       console.error('Error fetching admin data:', error);
       setError(error.message);
       
-      // Set fallback data
-      setStats({
-        totalUsers: 0,
-        totalVMs: 0,
-        totalRevenue: 0,
-        activeVMs: 0
-      });
-      setVms([]);
-      setOrders([]);
+      // Only set fallback data on initial load
+      if (initialLoading) {
+        setStats({
+          totalUsers: 0,
+          totalVMs: 0,
+          totalRevenue: 0,
+          activeVMs: 0
+        });
+        setVms([]);
+        setOrders([]);
+      }
     } finally {
       setInitialLoading(false);
       setRefreshing(false);
