@@ -348,10 +348,13 @@ export function VMDashboard() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={fetchUserData}
+                        onClick={() => {
+                          setLoading(true);
+                          fetchUserData();
+                        }}
                         disabled={actionLoading[vm.id]}
                       >
-                        <RefreshCw className="h-4 w-4 mr-2" />
+                        <RefreshCw className={`h-4 w-4 mr-2 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
                         Actualizar
                       </Button>
                     </div>

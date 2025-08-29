@@ -782,13 +782,13 @@ export function AdminPanel() {
             <Button
               variant="outline"
               onClick={() => {
-                fetchAdminData();
-                fetchProxmoxStats();
+                setRefreshing(true);
+                backgroundRefresh();
               }}
-              disabled={loading || proxmoxLoading}
+              disabled={refreshing}
               className="flex items-center justify-center"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading || proxmoxLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Actualizar Todo
             </Button>
             <Button

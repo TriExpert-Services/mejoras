@@ -178,7 +178,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
               </div>
               <div className="flex items-center gap-3">
                 {getStatusBadge(metric.status, metric.running)}
-                {loading && (
+                {refreshing && (
                   <div className="flex items-center text-xs text-blue-600">
                     <RefreshCw className="h-3 w-3 animate-spin mr-1" />
                     Actualizando...
