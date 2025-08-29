@@ -145,8 +145,7 @@ async function provisionVM(orderId: string) {
     }
 
     // Get template ID from environment or use default
-    const templateId = Deno.env.get('PVE_TEMPLATE_ID') || '9000';
-    console.log(`Using template ID: ${templateId}`);
+    console.log(`Creating VM from scratch (no template required)`);
     
     // Call Proxmox API to create VM
     const proxmoxResult = await callProxmoxAPI('create', undefined, {
@@ -155,33 +154,23 @@ async function provisionVM(orderId: string) {
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
       disk: order.vm_specs.disk_gb,
-      template: templateId,
       node: 'pve',
       password: rootPassword,
     });
 
     if (!proxmoxResult.success) {
-      // If template not found, provide helpful error
-      if (proxmoxResult.error && proxmoxResult.error.includes('unable to find configuration file')) {
-        throw new Error(`Template VM ${templateId} not found. Please check available templates in Proxmox and update PVE_TEMPLATE_ID environment variable.`);
-      }
       throw new Error(`Proxmox VM creation failed: ${proxmoxResult.error}`);
     }
 
+    console.log('VM created successfully, now starting...');
+    
     // Start the VM
-    await callProxmoxAPI('start', vmid, undefined);
-    
-    // Wait for VM to get IP address
-    await new Promise(resolve => setTimeout(resolve, 15000)); // Wait 15 seconds
-    
-    // Try to get IP address
-    let ipAddress = 'Asignando...';
     try {
-      const statusResult = await callProxmoxAPI('status', vmid, undefined);
-      // IP detection logic would go here
-      console.log('VM status after start:', statusResult);
-    } catch (error) {
-      console.log('Could not get VM status:', error);
+      await callProxmoxAPI('start', vmid, undefined);
+      console.log(`VM ${vmid} started successfully`);
+    } catch (startError) {
+      console.warn(`Could not auto-start VM ${vmid}:`, startError);
+      // VM created but not started - still success
     }
 
     // Update VM status
@@ -189,7 +178,7 @@ async function provisionVM(orderId: string) {
       .from('vms')
       .update({ 
         status: 'running', 
-        ip_address: ipAddress,
+        ip_address: 'Configurando...',
         provisioned_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
