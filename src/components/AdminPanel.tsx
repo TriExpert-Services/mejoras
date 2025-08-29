@@ -115,7 +115,7 @@ export function AdminPanel() {
           return {
             ...vm,
             user_email: user.user?.email || 'Desconocido',
-            vm_spec_name: vm.vm_specs?.name || 'Sin especificar'
+            vm_spec_name: (vm.vm_specs as any)?.name || 'Sin especificar'
           };
         })
       );
@@ -142,7 +142,7 @@ export function AdminPanel() {
           return {
             ...order,
             user_email: user.user?.email || 'Desconocido',
-            vm_spec_name: order.vm_specs?.name || 'Sin especificar'
+            vm_spec_name: (order.vm_specs as any)?.name || 'Sin especificar'
           };
         })
       );
