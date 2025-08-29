@@ -175,6 +175,7 @@ export function AdminPanel() {
 
   const fetchProxmoxStats = async () => {
     setProxmoxLoading(true);
+    setError(null);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -191,27 +192,32 @@ export function AdminPanel() {
         },
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
-        const data = await response.json();
         setProxmoxStats(data);
+        if (data.fallback) {
+          setError('Mostrando datos demo - no se pudo conectar al servidor Proxmox real');
+        }
       } else {
-        // Fallback mock data for demo
-        setProxmoxStats({
-          status: 'online',
-          uptime: 86400,
-          cpu_usage: 45.2,
-          memory_used: 12.5,
-          memory_total: 32,
-          disk_used: 250,
-          disk_total: 1000,
-          active_vms: stats.activeVMs || 0,
-          node_name: 'pve-node-01'
-        });
+        throw new Error(data.error || 'Error al obtener estadísticas');
       }
     } catch (error: any) {
       console.error('Error connecting to Proxmox:', error);
-      setProxmoxStats(null);
       setError(`No se pudo conectar a Proxmox: ${error.message}`);
+      
+      // Set fallback data with error indicator
+      setProxmoxStats({
+        status: 'offline',
+        uptime: 0,
+        cpu_usage: 0,
+        memory_used: 0,
+        memory_total: 0,
+        disk_used: 0,
+        disk_total: 0,
+        active_vms: 0,
+        node_name: 'Desconectado'
+      });
     } finally {
       setProxmoxLoading(false);
     }
