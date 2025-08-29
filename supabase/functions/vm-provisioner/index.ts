@@ -161,23 +161,50 @@ async function provisionVM(orderId: string, templateId?: number, customVmName?: 
     const proxmoxResult = await callProxmoxAPI('clone', undefined, {
       vmid,
       name: vmName,
-      cores: order.vm_specs.cpu_cores,
-      memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
-      disk: order.vm_specs.disk_gb,
       template: finalTemplateId,
       node: 'pve',
-      password: rootPassword,
-      ipAddress,
     });
 
     if (!proxmoxResult.success) {
       throw new Error(`Proxmox VM creation failed: ${proxmoxResult.error}`);
     }
 
-    console.log('VM cloned successfully, now resizing and configuring...');
+    console.log('VM clone started, waiting for completion...');
+    
+    // Wait for clone task to complete
+    const taskId = proxmoxResult.data?.data;
+    if (taskId) {
+      await waitForTask(taskId, 'pve');
+    } else {
+      // Wait a bit for clone to complete
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
     
     // Resize VM to match specifications
     try {
+      console.log(`VM ${vmid} cloned successfully, now configuring...`);
+      await callProxmoxAPI('resize', vmid, {
+        cores: order.vm_specs.cpu_cores,
+        memory: order.vm_specs.ram_gb * 1024,
+        password: rootPassword,
+        ipAddress,
+      });
+      console.log(`VM ${vmid} resized successfully`);
+    } catch (resizeError) {
+    console.log('VM clone task started, waiting for completion...');
+    
+    // Wait for clone task to complete
+    if (proxmoxResult.data && proxmoxResult.data.data) {
+      const taskId = proxmoxResult.data.data;
+      console.log(`Waiting for clone task: ${taskId}`);
+      
+      await waitForTaskCompletion(taskId, 'pve');
+      console.log('Clone task completed successfully');
+    }
+    
+    // Now that cloning is complete, resize VM to match specifications
+    try {
+      console.log('VM cloned successfully, now resizing and configuring...');
       await callProxmoxAPI('resize', vmid, {
         cores: order.vm_specs.cpu_cores,
         memory: order.vm_specs.ram_gb * 1024,
@@ -187,6 +214,17 @@ async function provisionVM(orderId: string, templateId?: number, customVmName?: 
       console.log(`VM ${vmid} resized successfully`);
     } catch (resizeError) {
       console.warn(`Could not resize VM ${vmid}:`, resizeError);
+    }
+    
+    // Start the VM
+    try {
+      console.log('VM configured successfully, now starting...');
+      await callProxmoxAPI('start', vmid, undefined);
+      console.log(`VM ${vmid} started successfully`);
+    } catch (startError) {
+      console.warn(`Could not auto-start VM ${vmid}:`, startError);
+      // VM created but not started - still success
+    }
     }
     
     console.log('VM configured successfully, now starting...');
@@ -413,6 +451,46 @@ function generatePassword(length = 16): string {
   }
   
   return password;
+}
+
+async function waitForTaskCompletion(taskId: string, node: string, maxWaitMinutes = 5) {
+  const maxWaitMs = maxWaitMinutes * 60 * 1000;
+  const startTime = Date.now();
+  const pollInterval = 2000; // 2 seconds
+
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const taskResult = await callProxmoxAPI('task-status', undefined, {
+        upid: taskId,
+        node: node
+      });
+
+      if (taskResult.success && taskResult.data && taskResult.data.data) {
+        const taskData = taskResult.data.data;
+        
+        console.log(`Task ${taskId} status:`, taskData.status, taskData.exitstatus);
+        
+        if (taskData.status === 'stopped') {
+          if (taskData.exitstatus === 'OK') {
+            console.log(`Task ${taskId} completed successfully`);
+            return;
+          } else {
+            throw new Error(`Task ${taskId} failed with status: ${taskData.exitstatus}`);
+          }
+        }
+      }
+      
+      // Wait before polling again
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      
+    } catch (error) {
+      console.warn(`Error checking task status: ${error}`);
+      // Continue polling even if status check fails
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+  }
+
+  throw new Error(`Task ${taskId} did not complete within ${maxWaitMinutes} minutes`);
 }
 
 async function generateUniqueIP(): Promise<string> {
