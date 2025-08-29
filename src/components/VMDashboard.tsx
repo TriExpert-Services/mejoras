@@ -232,6 +232,9 @@ export function VMDashboard() {
                     <div>
                       <CardTitle className="text-xl">{vm.vm_specs?.name}</CardTitle>
                       <p className="text-gray-600">{vm.name}</p>
+                      <p className="text-xs text-gray-500">
+                        Actualización automática cada 15s
+                      </p>
                     </div>
                     {getStatusBadge(vm.status)}
                   </div>

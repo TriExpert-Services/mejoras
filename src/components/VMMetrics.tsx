@@ -178,6 +178,12 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
               </div>
               <div className="flex items-center gap-3">
                 {getStatusBadge(metric.status, metric.running)}
+                {loading && (
+                  <div className="flex items-center text-xs text-blue-600">
+                    <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                    Actualizando...
+                  </div>
+                )}
                 <Button variant="outline" size="sm" onClick={fetchMetrics}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>
