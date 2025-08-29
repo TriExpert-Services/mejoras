@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum VMState {
+  PROVISIONING
+  RUNNING
+  STOPPED
+  ERROR
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(CUSTOMER)
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+  vms       VMInstance[]
+
+  @@map("users")
+}
+
+model Plan {
+  id             String      @id @default(cuid())
+  name           String
+  cpu            Int
+  ramMb          Int
+  diskGb         Int
+  priceUsd       Decimal     @db.Numeric(10,2)
+  allowSnapshots Boolean     @default(false)
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  orders         Order[]
+  vms            VMInstance[]
+
+  @@map("plans")
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  userId            String
+  planId            String
+  status            OrderStatus @default(PENDING)
+  stripeSessionId   String?
+  stripePaymentId   String?
+  amountUsd         Decimal     @db.Numeric(10,2)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  user              User        @relation(fields: [userId], references: [id])
+  plan              Plan        @relation(fields: [planId], references: [id])
+
+  @@map("orders")
+}
+
+model VMInstance {
+  id        String   @id @default(cuid())
+  userId    String
+  planId    String
+  vmid      Int      // VMID en Proxmox
+  node      String
+  pool      String?
+  hostname  String
+  ip        String?
+  vlan      Int?
+  state     VMState  @default(PROVISIONING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  plan      Plan     @relation(fields: [planId], references: [id])
+
+  @@unique([node, vmid])
+  @@map("vm_instances")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  resource  String
+  payload   Json?
+  result    String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  source    String
+  event     String
+  delivered Boolean  @default(false)
+  retries   Int      @default(0)
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@map("webhook_events")
+}
