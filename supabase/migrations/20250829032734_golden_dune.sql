@@ -6,7 +6,7 @@ SELECT 'CREATE DATABASE vps_platform'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'vps_platform');
 
 -- Connect to the database
-\c vps_platform;
+ vps_platform;
 
 -- Create extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
