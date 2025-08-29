@@ -173,7 +173,7 @@ async function handleEvent(event: Stripe.Event) {
           throw new Error(`Failed to create order: ${orderError?.message}`);
         }
 
-        // Trigger VM provisioning
+         await triggerVMProvisioning(order.id);
         EdgeRuntime.waitUntil(triggerVMProvisioning(order.id));
 
         console.info(`Created order ${order.id} and triggered VM provisioning`);
