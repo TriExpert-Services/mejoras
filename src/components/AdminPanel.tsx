@@ -62,6 +62,7 @@ interface AdminVM {
   cpu_cores: number;
   ram_gb: number;
   vm_spec_name: string;
+  order_id: string;
 }
 
 interface AdminOrder {
@@ -212,43 +213,28 @@ export function AdminPanel() {
         throw new Error('No hay sesión activa');
       }
 
-      if (action === 'delete') {
-        const { error } = await supabase
-          .from('vms')
-          .update({ deleted_at: new Date().toISOString() })
-          .eq('id', vmId);
-        
-        if (error) throw error;
-        await fetchAdminData();
-      } else {
-        // Get VM's order ID for Proxmox operations
-        const { data: vm } = await supabase
-          .from('vms')
-          .select('order_id')
-          .eq('id', vmId)
-          .single();
-        
-        if (!vm) throw new Error('VM no encontrada');
+      // Get VM's order ID for all operations (including delete)
+      const vm = vms.find(v => v.id === vmId);
+      if (!vm) throw new Error('VM no encontrada');
 
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-provisioner`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            orderId: vm.order_id,
-            action,
-          }),
-        });
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-provisioner`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: vm.order_id,
+          action,
+        }),
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Error al ${action === 'start' ? 'iniciar' : 'detener'} el VM`);
-        }
-
-        await fetchAdminData();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error al ${action === 'start' ? 'iniciar' : action === 'stop' ? 'detener' : 'eliminar'} el VM`);
       }
+
+      await fetchAdminData();
       
     } catch (error: any) {
       console.error(`Error ${action}ing VM:`, error);

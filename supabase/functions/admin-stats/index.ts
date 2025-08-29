@@ -143,6 +143,7 @@ async function getRecentVMs() {
         cpu_cores,
         ram_gb,
         user_id,
+        order_id,
         vm_specs!inner (name)
       `)
       .is('deleted_at', null)
