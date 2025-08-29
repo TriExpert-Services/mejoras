@@ -10,6 +10,8 @@ COPY tsconfig.node.json ./
 COPY vite.config.ts ./
 COPY postcss.config.js ./
 COPY tailwind.config.js ./
+COPY vite-env.d.ts ./
+COPY vite-env.d.ts ./
 
 # Install dependencies
 RUN npm ci
@@ -17,9 +19,13 @@ RUN npm ci
 # Copy source code
 COPY src ./src
 COPY index.html ./
-COPY vite-env.d.ts ./
 
-# Build the application
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 RUN npm run build
 
 # Production stage
