@@ -100,6 +100,7 @@ async function provisionVM(orderId: string) {
   try {
     // Generate unique VM ID
     const vmid = await generateVMID();
+    const ipAddress = await generateIPAddress();
     const vmName = `vm-${orderId.substring(0, 8)}`;
     const rootPassword = generatePassword();
 
@@ -158,6 +159,7 @@ async function provisionVM(orderId: string) {
       template: parseInt(templateId),
       node: 'pve',
       password: rootPassword,
+      ipAddress,
     });
 
     if (!proxmoxResult.success) {
@@ -180,7 +182,7 @@ async function provisionVM(orderId: string) {
       .from('vms')
       .update({ 
         status: 'running', 
-        ip_address: 'Configurando...',
+        ip_address: ipAddress,
         provisioned_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -388,4 +390,27 @@ function generatePassword(length = 16): string {
   }
   
   return password;
+}
+
+async function generateUniqueIP(): Promise<string> {
+  // Get existing IP addresses from database
+  const { data: existingVMs } = await supabase
+    .from('vms')
+    .select('ip_address')
+    .not('deleted_at', 'is', null)
+    .not('ip_address', 'is', null);
+
+  const usedIPs = new Set(
+    existingVMs?.map(vm => vm.ip_address).filter(ip => ip && ip !== 'Configurando...') || []
+  );
+
+  // Generate IP in range 10.0.0.100-10.0.0.254
+  for (let i = 100; i <= 254; i++) {
+    const ip = `10.0.0.${i}`;
+    if (!usedIPs.has(ip)) {
+      return ip;
+    }
+  }
+
+  throw new Error('No available IP addresses in range 10.0.0.100-10.0.0.254');
 }

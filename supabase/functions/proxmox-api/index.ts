@@ -68,6 +68,11 @@ Deno.serve(async (req) => {
           boot: 'c',
           bootdisk: 'scsi0',
           scsihw: 'virtio-scsi-pci',
+          ...(config.ipAddress && {
+            ipconfig0: `ip=${config.ipAddress}/24,gw=${Deno.env.get('PVE_DEFAULT_GATEWAY') || '10.0.0.1'}`,
+            cipassword: config.password,
+            ciuser: 'root',
+          }),
         });
         break;
 
