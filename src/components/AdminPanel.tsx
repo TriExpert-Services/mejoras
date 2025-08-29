@@ -149,7 +149,7 @@ export function AdminPanel() {
       const vmsBasic = (vmsData || []).map(vm => ({
         ...vm,
         user_email: 'Usuario',
-        vm_spec_name: Array.isArray(vm.vm_specs) ? vm.vm_specs[0]?.name : vm.vm_specs?.name || 'Sin especificar'
+        vm_spec_name: (vm.vm_specs as any)?.name || 'Sin especificar'
       }));
 
       setVms(vmsBasic);
@@ -171,7 +171,7 @@ export function AdminPanel() {
       const ordersBasic = (ordersData || []).map(order => ({
         ...order,
         user_email: 'Usuario',
-        vm_spec_name: Array.isArray(order.vm_specs) ? order.vm_specs[0]?.name : order.vm_specs?.name || 'Sin especificar'
+        vm_spec_name: (order.vm_specs as any)?.name || 'Sin especificar'
       }));
 
       setOrders(ordersBasic);
@@ -460,7 +460,7 @@ export function AdminPanel() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </div>
 
       {/* Debug Info */}
       {error && (
@@ -477,4 +477,3 @@ export function AdminPanel() {
     </div>
   );
 }
-</invoke>
