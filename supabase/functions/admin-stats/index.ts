@@ -78,6 +78,11 @@ Deno.serve(async (req) => {
 async function getAdminStats() {
   try {
     // Get VM counts
+    const { data: allVMs } = await supabase
+      .from('vms')
+      .select('status')
+      .is('deleted_at', null);
+      
     const { count: totalVMs } = await supabase
       .from('vms')
       .select('*', { count: 'exact', head: true })
@@ -89,6 +94,11 @@ async function getAdminStats() {
       .eq('status', 'running')
       .is('deleted_at', null);
 
+    console.log('VM Stats:', { 
+      totalVMs, 
+      activeVMs, 
+      allVMs: allVMs?.map(vm => vm.status) 
+    });
     // Get total revenue
     const { data: revenueData } = await supabase
       .from('orders')
@@ -103,6 +113,12 @@ async function getAdminStats() {
       .select('*', { count: 'exact', head: true })
       .is('deleted_at', null);
 
+    console.log('Final admin stats:', {
+      totalUsers: totalUsers || 0,
+      totalVMs: totalVMs || 0,
+      activeVMs: activeVMs || 0,
+      totalRevenue
+    });
     return {
       totalUsers: totalUsers || 0,
       totalVMs: totalVMs || 0,

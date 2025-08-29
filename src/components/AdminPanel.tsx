@@ -46,6 +46,7 @@ interface ProxmoxStats {
   pve_version?: string;
   kernel_version?: string;
   timestamp: string;
+  uptime_formatted?: string;
   debug?: {
     storage_details: any[];
   };
@@ -255,6 +256,77 @@ export function AdminPanel() {
       setActionLoading(prev => ({ ...prev, [vmId]: false }));
     }
   };
+  
+  const handleCreateVM = async (productId: string) => {
+    const actionKey = `create-${productId.includes('basic') ? 'basic' : 'premium'}`;
+    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No hay sesión activa');
+
+      // Get VM spec for the product
+      const { data: vmSpec, error: specError } = await supabase
+        .from('vm_specs')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (specError || !vmSpec) {
+        // Fallback: create based on product ID
+        const specs = {
+          'vps-basic-1': { cpu_cores: 1, ram_gb: 2, disk_gb: 40, price: 20 },
+          'vps-premium-1': { cpu_cores: 4, ram_gb: 8, disk_gb: 160, price: 24 },
+        };
+        
+        const spec = specs[productId as keyof typeof specs];
+        if (!spec) throw new Error('Producto no encontrado');
+
+        // Create manual order
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: session.user.id,
+            stripe_session_id: `manual-${Date.now()}`,
+            vm_spec_id: productId,
+            status: 'pending',
+            total_amount: spec.price,
+            currency: 'usd',
+          })
+          .select()
+          .single();
+
+        if (orderError) throw new Error(`Error creando orden: ${orderError.message}`);
+
+        // Trigger VM provisioning
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-provisioner`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId: order.id,
+            action: 'provision',
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error creando VM');
+        }
+
+        alert('VM creado exitosamente! Revisa la lista de VPS.');
+        await fetchAdminData();
+      }
+      
+    } catch (error: any) {
+      console.error('Error creating VM:', error);
+      setError(`Error creando VM: ${error.message}`);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -446,15 +518,27 @@ export function AdminPanel() {
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
                 <div className="flex items-center justify-between mb-3">
                   <Activity className="h-8 w-8 text-orange-600" />
-                  <span className="text-2xl font-bold text-orange-700">
-                    {formatUptime(proxmoxStats.uptime)}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-orange-700">
+                      {proxmoxStats.uptime_formatted || formatUptime(proxmoxStats.uptime)}
+                    </span>
+                    <p className="text-xs text-orange-600">{proxmoxStats.active_vms}/{proxmoxStats.total_vms} VMs</p>
+                  </div>
                 </div>
-                <h4 className="font-semibold text-orange-900 mb-1">Uptime</h4>
-                <p className="text-sm text-orange-600">Nodo: {proxmoxStats.node_name}</p>
+                <h4 className="font-semibold text-orange-900 text-sm mb-1">Red & Tiempo</h4>
+                <div className="text-xs text-orange-600 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span>Nodo:</span>
+                    <span className="font-medium">{proxmoxStats.node_name}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>PVE Ver:</span>
+                    <span className="font-medium">{proxmoxStats.pve_version || 'N/A'}</span>
+                  </div>
+                </div>
                 <div className="flex items-center mt-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-orange-600">{proxmoxStats.active_vms}/{proxmoxStats.total_vms} VMs</span>
+                  <span className="text-xs text-orange-600">En Línea</span>
                 </div>
               </div>
             </div>
@@ -516,6 +600,49 @@ export function AdminPanel() {
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-8">
+        {/* VM Creation */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Server className="h-5 w-5 mr-2 text-green-600" />
+              Crear VPS Manualmente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Crear un VPS directamente sin pasar por Stripe (para testing)
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  onClick={() => handleCreateVM('vps-basic-1')}
+                  disabled={actionLoading['create-basic']}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {actionLoading['create-basic'] ? 'Creando...' : 'VPS Básico'}
+                  <span className="block text-xs">1 CPU • 2GB • 40GB</span>
+                </Button>
+                
+                <Button
+                  onClick={() => handleCreateVM('vps-premium-1')}
+                  disabled={actionLoading['create-premium']}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {actionLoading['create-premium'] ? 'Creando...' : 'VPS Premium'}
+                  <span className="block text-xs">4 CPU • 8GB • 160GB</span>
+                </Button>
+              </div>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-xs text-yellow-700">
+                  <strong>Testing:</strong> Estos VPS se crean sin pago, solo para pruebas de administrador
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* VMs Management */}
         <Card>
           <CardHeader>
@@ -600,43 +727,43 @@ export function AdminPanel() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Orders Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <DollarSign className="h-5 w-5 mr-2" />
-              Órdenes Recientes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {orders.length === 0 ? (
-                <div className="text-center py-8">
-                  <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No hay órdenes registradas</p>
-                </div>
-              ) : (
-                orders.map((order) => (
-                  <div key={order.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h4 className="font-medium text-gray-900">${order.total_amount}</h4>
-                        <p className="text-sm text-gray-600">{order.user_email}</p>
-                        <p className="text-xs text-blue-600">{order.vm_spec_name}</p>
-                      </div>
-                      {getStatusBadge(order.status)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(order.created_at).toLocaleString('es-ES')}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
+      
+      {/* Orders Management */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <DollarSign className="h-5 w-5 mr-2" />
+            Órdenes Recientes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {orders.length === 0 ? (
+              <div className="text-center py-8">
+                <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No hay órdenes registradas</p>
+              </div>
+            ) : (
+              orders.map((order) => (
+                <div key={order.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="font-medium text-gray-900">${order.total_amount}</h4>
+                      <p className="text-sm text-gray-600">{order.user_email}</p>
+                      <p className="text-xs text-blue-600">{order.vm_spec_name}</p>
+                    </div>
+                    {getStatusBadge(order.status)}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {new Date(order.created_at).toLocaleString('es-ES')}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Controls */}
       <Card className="mt-8">
@@ -676,6 +803,38 @@ export function AdminPanel() {
               <HardDrive className="h-4 w-4 mr-2" />
               Backup Sistema
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Test Stripe Flow */}
+      <Card className="mt-8 border-green-200 bg-green-50">
+        <CardHeader>
+          <CardTitle className="text-green-800 flex items-center">
+            <DollarSign className="h-5 w-5 mr-2" />
+            Test de Flujo Stripe
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-green-700">
+              Para probar el flujo completo de Stripe → Webhook → Creación VM automática
+            </p>
+            
+            <Button
+              onClick={() => window.open('/plans', '_blank')}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              🧪 Ir a Planes VPS (Test Stripe)
+            </Button>
+            
+            <div className="bg-white border border-green-200 rounded p-3 text-xs text-green-700">
+              <strong>Flujo de Testing:</strong><br />
+              1. Ir a Planes VPS<br />
+              2. Comprar cualquier plan con Stripe (modo test)<br />
+              3. Webhook debería crear VM automáticamente<br />
+              4. VM aparecerá en este panel admin
+            </div>
           </div>
         </CardContent>
       </Card>
