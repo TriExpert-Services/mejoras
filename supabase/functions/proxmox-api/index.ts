@@ -52,27 +52,32 @@ Deno.serve(async (req) => {
         method = 'GET';
         break;
         
-      case 'create':
-        console.log(`Creating new VM ${config.vmid}...`);
-        endpoint = `/nodes/${config.node}/qemu`;
-        method = 'POST';
+      case 'resize':
+        console.log(`Resizing VM ${vmId} resources...`);
+        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/config`;
+        method = 'PUT';
         body = new URLSearchParams({
-          vmid: config.vmid.toString(),
-          name: config.name,
           cores: config.cores.toString(),
           memory: config.memory.toString(),
-          ostype: 'l26',
-          agent: '1',
-          net0: `virtio,bridge=${Deno.env.get('PVE_DEFAULT_BRIDGE') || 'vmbr0'}`,
-          scsi0: `${Deno.env.get('PVE_DEFAULT_STORAGE') || 'local-lvm'}:${config.disk}`,
-          boot: 'c',
-          bootdisk: 'scsi0',
-          scsihw: 'virtio-scsi-pci',
           ...(config.ipAddress && {
             ipconfig0: `ip=${config.ipAddress}/24,gw=${Deno.env.get('PVE_DEFAULT_GATEWAY') || '10.0.0.1'}`,
             cipassword: config.password,
-            ciuser: 'root',
           }),
+        });
+        break;
+
+      case 'clone':
+        console.log(`Cloning template ${config.template} to VM ${config.vmid}...`);
+        endpoint = `/nodes/${config.node}/qemu/${config.template}/clone`;
+        method = 'POST';
+        body = new URLSearchParams({
+          newid: config.vmid.toString(),
+          vmid: config.vmid.toString(),
+          name: config.name,
+          node: config.node,
+          storage: Deno.env.get('PVE_DEFAULT_STORAGE') || 'local-lvm',
+          format: 'raw',
+          full: '1', // Full clone
         });
         break;
 

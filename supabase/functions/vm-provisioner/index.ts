@@ -150,7 +150,7 @@ async function provisionVM(orderId: string) {
     console.log(`Using template ID: ${templateId}`);
     
     // Call Proxmox API to create VM
-    const proxmoxResult = await callProxmoxAPI('create', undefined, {
+    const proxmoxResult = await callProxmoxAPI('clone', undefined, {
       vmid,
       name: vmName,
       cores: order.vm_specs.cpu_cores,
@@ -166,7 +166,22 @@ async function provisionVM(orderId: string) {
       throw new Error(`Proxmox VM creation failed: ${proxmoxResult.error}`);
     }
 
-    console.log('VM created successfully, now starting...');
+    console.log('VM cloned successfully, now resizing and configuring...');
+    
+    // Resize VM to match specifications
+    try {
+      await callProxmoxAPI('resize', vmid, {
+        cores: order.vm_specs.cpu_cores,
+        memory: order.vm_specs.ram_gb * 1024,
+        password: rootPassword,
+        ipAddress,
+      });
+      console.log(`VM ${vmid} resized successfully`);
+    } catch (resizeError) {
+      console.warn(`Could not resize VM ${vmid}:`, resizeError);
+    }
+    
+    console.log('VM configured successfully, now starting...');
     
     // Start the VM
     try {
