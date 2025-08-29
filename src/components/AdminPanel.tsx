@@ -103,7 +103,6 @@ export function AdminPanel() {
 
   const fetchBasicData = async () => {
     try {
-      // Get VM counts from database directly
       const { count: vmCount } = await supabase
         .from('vms')
         .select('*', { count: 'exact', head: true })
@@ -123,13 +122,12 @@ export function AdminPanel() {
       const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
 
       setStats({
-        totalUsers: 0, // Cannot get user count without admin API
+        totalUsers: 0,
         totalVMs: vmCount || 0,
         activeVMs: activeVMCount || 0,
         totalRevenue
       });
 
-      // Get VMs with basic info (no user emails)
       const { data: vmsData } = await supabase
         .from('vms')
         .select(`
@@ -154,7 +152,6 @@ export function AdminPanel() {
 
       setVms(vmsBasic);
 
-      // Get orders with basic info
       const { data: ordersData } = await supabase
         .from('orders')
         .select(`
@@ -193,7 +190,6 @@ export function AdminPanel() {
         
         if (error) throw error;
       } else {
-        // For start/stop, you'd call your VM provisioner
         console.log(`${action}ing VM ${vmId}`);
       }
       
@@ -460,7 +456,7 @@ export function AdminPanel() {
             </Button>
           </div>
         </CardContent>
-      </div>
+      </Card>
 
       {/* Debug Info */}
       {error && (
@@ -477,3 +473,69 @@ export function AdminPanel() {
     </div>
   );
 }
+</parameter>
+</invoke>
+<invoke name="str_replace_editor">
+<parameter name="command">str_replace</parameter>
+<parameter name="path">docker-compose.yml</parameter>
+<parameter name="old_str">version: '3.8'
+
+services:
+  # Main React application
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: https://postgres.triexpertservice.com
+        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MVc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+    container_name: vps-platform-app
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=https://postgres.triexpertservice.com
+      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MVc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+    restart: unless-stopped
+    networks:
+      - vps-network
+    depends_on:
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vps-app.rule=Host(`localhost`)"
+      - "traefik.http.services.vps-app.loadbalancer.server.port=80"</parameter>
+<parameter name="new_str">version: '3.8'
+
+services:
+  # Main React application
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: https://postgres.triexpertservice.com
+        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MVc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+    container_name: vps-platform-app
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    networks:
+      - vps-network
+    depends_on:
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vps-app.rule=Host(`localhost`)"
+      - "traefik.http.services.vps-app.loadbalancer.server.port=80"</parameter>
+</invoke>
+<invoke name="str_replace_editor">
+<parameter name="command">create</parameter>
+<parameter name="path">rebuild.sh</parameter>
+<parameter name="file_text">#!/bin/bash
+echo "🔄 Rebuilding VPS Platform with clean configuration..."
+docker-compose down --remove-orphans
+docker-compose build --no-cache
+echo "✅ Build completed successfully!"
+</parameter>
+</invoke>
