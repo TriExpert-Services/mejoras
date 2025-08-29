@@ -85,6 +85,7 @@ export function AdminPanel() {
   const [vms, setVms] = useState<AdminVM[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [proxmoxLoading, setProxmoxLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
