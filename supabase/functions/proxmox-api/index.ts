@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     }
 
     // Make request to Proxmox API
-    const url = `${proxmoxApiUrl}/api2/json${endpoint}`;
+    const url = `${proxmoxApiUrl}${endpoint}`;
     
     console.log(`Making Proxmox API request: ${method} ${url}`);
 
