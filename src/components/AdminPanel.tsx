@@ -203,7 +203,7 @@ export function AdminPanel() {
           memory_total: 32,
           disk_used: 250,
           disk_total: 1000,
-          active_vms: activeVMCount || 0,
+          active_vms: stats.activeVMs || 0,
           node_name: 'pve-node-01'
         });
       }
