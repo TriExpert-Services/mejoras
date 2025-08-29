@@ -1,10 +1,4 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,43 +19,128 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { orderId, action } = await req.json();
+    const { action, vmId, config } = await req.json();
+    
+    console.log(`Proxmox API call: action=${action}, vmId=${vmId}`, config ? 'with config' : 'no config');
 
-    if (!orderId) {
-      return new Response(
-        JSON.stringify({ error: 'Order ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Get Proxmox configuration from environment
+    const proxmoxHost = Deno.env.get('PVE_HOST');
+    const tokenId = Deno.env.get('PVE_TOKEN_ID');
+    const tokenSecret = Deno.env.get('PVE_TOKEN_SECRET');
+    const defaultNode = Deno.env.get('PVE_DEFAULT_NODE') || 'pve';
+    const tlsInsecure = Deno.env.get('PVE_TLS_INSECURE') === 'true';
+
+    if (!proxmoxHost || !tokenId || !tokenSecret) {
+      throw new Error('Missing Proxmox configuration');
     }
 
-    let result;
+    // Prepare authentication headers
+    const auth = `${tokenId}=${tokenSecret}`;
+    const headers = {
+      'Authorization': `PVEAPIToken=${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
+
+    // Handle different actions
+    let endpoint = '';
+    let method = 'GET';
+    let body = null;
 
     switch (action) {
-      case 'provision':
-        result = await provisionVM(orderId);
+      case 'list-templates':
+        console.log('Listing all VM templates...');
+        endpoint = `/nodes/${config?.node || defaultNode}/qemu`;
+        method = 'GET';
         break;
+        
+      case 'create':
+        console.log(`Creating new VM ${config.vmid}...`);
+        endpoint = `/nodes/${config.node}/qemu`;
+        method = 'POST';
+        body = new URLSearchParams({
+          vmid: config.vmid.toString(),
+          name: config.name,
+          cores: config.cores.toString(),
+          memory: config.memory.toString(),
+          ostype: 'l26',
+          agent: '1',
+          net0: `virtio,bridge=${Deno.env.get('PVE_DEFAULT_BRIDGE') || 'vmbr0'}`,
+          scsi0: `${Deno.env.get('PVE_DEFAULT_STORAGE') || 'local-lvm'}:${config.disk}`,
+          boot: 'c',
+          bootdisk: 'scsi0',
+          scsihw: 'virtio-scsi-pci',
+        });
+        break;
+
       case 'start':
-        result = await controlVM(orderId, 'start');
+        console.log(`Starting VM ${vmId}...`);
+        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/status/start`;
+        method = 'POST';
+        body = new URLSearchParams();
         break;
+
       case 'stop':
-        result = await controlVM(orderId, 'stop');
+        console.log(`Stopping VM ${vmId}...`);
+        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/status/stop`;
+        method = 'POST';
+        body = new URLSearchParams();
         break;
+
       case 'status':
-        result = await getVMInfo(orderId);
+        console.log(`Getting VM ${vmId} status...`);
+        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/status/current`;
+        method = 'GET';
         break;
+
+      case 'config':
+        console.log(`Getting VM ${vmId} config...`);
+        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/config`;
+        method = 'GET';
+        break;
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
 
+    // Make request to Proxmox API
+    const protocol = tlsInsecure ? 'http' : 'https';
+    const url = `${protocol}://${proxmoxHost}:8006/api2/json${endpoint}`;
+    
+    console.log(`Making Proxmox API request: ${method} ${url}`);
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: method !== 'GET' ? body : undefined,
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      console.error('Proxmox API error:', result);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Proxmox API error ${response.status}: ${JSON.stringify(result)}` 
+        }),
+        { 
+          status: response.status, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('Proxmox API success:', result);
+    
     return new Response(
       JSON.stringify({ success: true, data: result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('VM provisioner error:', error);
+    console.error('Proxmox API proxy error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ success: false, error: error.message }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -69,259 +148,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-
-async function provisionVM(orderId: string) {
-  console.log(`Starting VM provisioning for order: ${orderId}`);
-
-  // Get order details
-  const { data: order, error: orderError } = await supabase
-    .from('orders')
-    .select(`
-      *,
-      vm_specs (*)
-    `)
-    .eq('id', orderId)
-    .single();
-
-  if (orderError || !order) {
-    throw new Error(`Order not found: ${orderError?.message}`);
-  }
-
-  if (order.status !== 'pending') {
-    throw new Error(`Order ${orderId} is not in pending status`);
-  }
-
-  // Update order status to processing
-  await supabase
-    .from('orders')
-    .update({ status: 'processing', updated_at: new Date().toISOString() })
-    .eq('id', orderId);
-
-  try {
-    // Generate unique VM ID
-    const vmid = await generateVMID();
-    const vmName = `vm-${orderId.substring(0, 8)}`;
-    const rootPassword = generatePassword();
-
-    // First check what templates are available
-    console.log('Checking available VM templates...');
-    try {
-      const templatesResult = await callProxmoxAPI('list-templates', undefined, undefined);
-      console.log('Available templates:', templatesResult);
-    } catch (templateError) {
-      console.warn('Could not list available templates:', templateError);
-    }
-
-    // First, check available templates
-    console.log('Checking available VM templates...');
-    try {
-      const templatesResult = await callProxmoxAPI('list-templates', undefined, undefined);
-      console.log('Available templates:', templatesResult);
-    } catch (templateError) {
-      console.warn('Could not list templates:', templateError);
-    }
-
-    // Create VM record
-    const { data: vm, error: vmError } = await supabase
-      .from('vms')
-      .insert({
-        user_id: order.user_id,
-        order_id: orderId,
-        vm_spec_id: order.vm_spec_id,
-        name: vmName,
-        proxmox_vmid: vmid,
-        cpu_cores: order.vm_specs.cpu_cores,
-        ram_gb: order.vm_specs.ram_gb,
-        disk_gb: order.vm_specs.disk_gb,
-        root_password: rootPassword,
-        status: 'creating',
-        proxmox_node: 'pve', // Default node
-      })
-      .select()
-      .single();
-
-    if (vmError || !vm) {
-      throw new Error(`Failed to create VM record: ${vmError?.message}`);
-    }
-
-    // Get template ID from environment or use default
-    const templateId = parseInt(Deno.env.get('PVE_TEMPLATE_ID') || '9000');
-    
-    // Call Proxmox API to create VM
-    const proxmoxResult = await callProxmoxAPI('create', undefined, {
-      vmid,
-      name: vmName,
-      cores: order.vm_specs.cpu_cores,
-      memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
-      disk: order.vm_specs.disk_gb,
-      node: 'pve',
-      password: rootPassword,
-    });
-
-    if (!proxmoxResult.success) {
-      throw new Error(`Proxmox VM creation failed: ${proxmoxResult.error}`);
-    }
-
-    console.log('VM created successfully, now starting...');
-    
-    // Start the VM
-    try {
-      await callProxmoxAPI('start', vmid, undefined);
-      console.log(`VM ${vmid} started successfully`);
-    } catch (startError) {
-      console.warn(`Could not auto-start VM ${vmid}:`, startError);
-      // VM created but not started - still success
-    }
-
-    // Update VM status
-    await supabase
-      .from('vms')
-      .update({ 
-        status: 'running', 
-        ip_address: 'Configurando...',
-        provisioned_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', vm.id);
-
-    // Update order status to completed
-    await supabase
-      .from('orders')
-      .update({ 
-        status: 'completed', 
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', orderId);
-
-    console.log(`VM provisioned successfully: ${vmid}`);
-
-    const ipAddress = 'Configurando...';
-
-    return {
-      vmId: vm.id,
-      proxmoxVmId: vmid,
-      status: 'running',
-      ipAddress,
-      credentials: {
-        ip: ipAddress,
-        username: 'root',
-        password: rootPassword,
-      }
-    };
-
-  } catch (error: any) {
-    console.error(`VM provisioning failed for order ${orderId}:`, error);
-
-    // Update order status to failed
-    await supabase
-      .from('orders')
-      .update({ 
-        status: 'failed', 
-        error_message: error.message,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', orderId);
-
-    // Update VM status to error if VM record exists
-    await supabase
-      .from('vms')
-      .update({ 
-        status: 'error', 
-        error_message: error.message,
-        last_error_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('order_id', orderId);
-
-    throw error;
-  }
-}
-
-async function controlVM(orderId: string, action: 'start' | 'stop') {
-  const { data: vm, error } = await supabase
-    .from('vms')
-    .select('proxmox_vmid, status')
-    .eq('order_id', orderId)
-    .single();
-
-  if (error || !vm) {
-    throw new Error(`VM not found for order: ${orderId}`);
-  }
-
-  const result = await callProxmoxAPI(action, vm.proxmox_vmid);
-  
-  const newStatus = action === 'start' ? 'running' : 'stopped';
-  await supabase
-    .from('vms')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
-    .eq('order_id', orderId);
-
-  return result;
-}
-
-async function getVMInfo(orderId: string) {
-  const { data: vm, error } = await supabase
-    .from('vms')
-    .select(`
-      *,
-      vm_specs (*),
-      orders (*)
-    `)
-    .eq('order_id', orderId)
-    .single();
-
-  if (error || !vm) {
-    throw new Error(`VM not found for order: ${orderId}`);
-  }
-
-  return vm;
-}
-
-async function callProxmoxAPI(action: string, vmId?: number, config?: any) {
-  const proxmoxUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/proxmox-api`;
-  
-  const response = await fetch(proxmoxUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-    },
-    body: JSON.stringify({
-      action,
-      vmId,
-      config,
-    }),
-  });
-
-  const result = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(result.error || 'Proxmox API call failed');
-  }
-
-  return result;
-}
-
-async function generateVMID(): Promise<number> {
-  // Get existing VM IDs to avoid conflicts
-  const { data: vms } = await supabase
-    .from('vms')
-    .select('proxmox_vmid')
-    .order('proxmox_vmid', { ascending: false })
-    .limit(1);
-
-  const lastVmId = vms && vms.length > 0 ? vms[0].proxmox_vmid : 100;
-  return (lastVmId || 100) + 1;
-}
-
-function generatePassword(length = 16): string {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-  let password = '';
-  
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  
-  return password;
-}
