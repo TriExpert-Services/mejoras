@@ -278,6 +278,70 @@ async function getVMInfo(orderId: string) {
   return vm;
 }
 
+async function deleteVM(orderId: string) {
+  console.log(`Deleting VM for order: ${orderId}`);
+
+  try {
+    // Get VM details
+    const { data: vm, error: vmError } = await supabase
+      .from('vms')
+      .select('id, proxmox_vmid, status')
+      .eq('order_id', orderId)
+      .single();
+
+    if (vmError || !vm) {
+      throw new Error(`VM not found for order: ${orderId}`);
+    }
+
+    // Try to stop and delete from Proxmox if it exists
+    if (vm.proxmox_vmid) {
+      try {
+        console.log(`Stopping VM ${vm.proxmox_vmid} before deletion...`);
+        await callProxmoxAPI('stop', vm.proxmox_vmid);
+        
+        console.log(`Deleting VM ${vm.proxmox_vmid} from Proxmox...`);
+        await callProxmoxAPI('delete', vm.proxmox_vmid);
+      } catch (proxmoxError) {
+        console.warn(`Could not delete VM from Proxmox: ${proxmoxError}`);
+        // Continue with soft delete even if Proxmox delete fails
+      }
+    }
+
+    // Soft delete the VM record (using service role key)
+    const { error: deleteError } = await supabase
+      .from('vms')
+      .update({ 
+        deleted_at: new Date().toISOString(),
+        status: 'deleted',
+        updated_at: new Date().toISOString()
+      })
+      .eq('order_id', orderId);
+
+    if (deleteError) {
+      throw new Error(`Failed to delete VM: ${deleteError.message}`);
+    }
+
+    console.log(`VM deleted successfully for order: ${orderId}`);
+    return { success: true, vmId: vm.id };
+
+  } catch (error: any) {
+    console.error(`Error deleting VM for order ${orderId}:`, error);
+    
+    // Update VM with error status
+    await supabase
+      .from('vms')
+      .update({ 
+        status: 'error',
+        error_message: `Delete failed: ${error.message}`,
+        last_error_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('order_id', orderId);
+
+    throw error;
+  }
+}
+
 async function callProxmoxAPI(action: string, vmId?: number, config?: any) {
   const proxmoxUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/proxmox-api`;
   

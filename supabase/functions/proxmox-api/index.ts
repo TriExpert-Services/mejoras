@@ -84,6 +84,12 @@ Deno.serve(async (req) => {
         endpoint = `/nodes/${defaultNode}/qemu/${vmId}/status/stop`;
         method = 'POST';
         body = new URLSearchParams();
+        
+      case 'delete':
+        console.log(`Deleting VM ${vmId}...`);
+        endpoint = `/nodes/${defaultNode}/qemu/${vmId}`;
+        method = 'DELETE';
+        break;
         break;
 
       case 'status':
