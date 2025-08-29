@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { VMMetrics } from './VMMetrics';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -232,6 +233,14 @@ export function VMDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* VM Metrics */}
+                  {vm.status === 'running' && (
+                    <div className="mb-6">
+                      <h4 className="font-medium mb-3">Métricas en Tiempo Real</h4>
+                      <VMMetrics vmId={vm.id} />
+                    </div>
+                  )}
+                  
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <h4 className="font-medium mb-3">Especificaciones</h4>

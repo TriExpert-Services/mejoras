@@ -89,7 +89,7 @@ export function AdminPanel() {
         .select('*', { count: 'exact', head: true })
         .is('deleted_at', null);
       
-      const { count: activeVMCount } = await supabase
+      const { count: activeVMs } = await supabase
         .from('vms')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'running')
@@ -114,7 +114,7 @@ export function AdminPanel() {
       setStats({
         totalUsers,
         totalVMs: vmCount || 0,
-        activeVMs: activeVMCount || 0,
+        activeVMs: activeVMs || 0,
         totalRevenue
       });
 

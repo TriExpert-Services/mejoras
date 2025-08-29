@@ -127,7 +127,7 @@ async function provisionVM(orderId: string) {
     }
 
     // Call Proxmox API to create VM
-    const proxmoxResult = await callProxmoxAPI('create', {
+    const proxmoxResult = await callProxmoxAPI('create', undefined, {
       vmid,
       name: vmName,
       cores: order.vm_specs.cpu_cores,
@@ -135,6 +135,7 @@ async function provisionVM(orderId: string) {
       disk: order.vm_specs.disk_gb,
       template: Deno.env.get('PROXMOX_TEMPLATE_ID') || '9000',
       node: 'pve',
+      password: rootPassword,
     });
 
     if (!proxmoxResult.success) {
@@ -142,13 +143,27 @@ async function provisionVM(orderId: string) {
     }
 
     // Start the VM
-    await callProxmoxAPI('start', vmid);
+    await callProxmoxAPI('start', vmid, undefined);
+    
+    // Wait for VM to get IP address
+    await new Promise(resolve => setTimeout(resolve, 15000)); // Wait 15 seconds
+    
+    // Try to get IP address
+    let ipAddress = 'Asignando...';
+    try {
+      const statusResult = await callProxmoxAPI('status', vmid, undefined);
+      // IP detection logic would go here
+      console.log('VM status after start:', statusResult);
+    } catch (error) {
+      console.log('Could not get VM status:', error);
+    }
 
     // Update VM status
     await supabase
       .from('vms')
       .update({ 
         status: 'running', 
+        ip_address: ipAddress,
         provisioned_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -170,8 +185,9 @@ async function provisionVM(orderId: string) {
       vmId: vm.id,
       proxmoxVmId: vmid,
       status: 'running',
+      ipAddress,
       credentials: {
-        ip: 'Asignando IP...',
+        ip: ipAddress,
         username: 'root',
         password: rootPassword,
       }
@@ -245,7 +261,7 @@ async function getVMInfo(orderId: string) {
   return vm;
 }
 
-async function callProxmoxAPI(action: string, vmIdOrConfig: number | any) {
+async function callProxmoxAPI(action: string, vmId?: number, config?: any) {
   const proxmoxUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/proxmox-api`;
   
   const response = await fetch(proxmoxUrl, {
@@ -256,8 +272,8 @@ async function callProxmoxAPI(action: string, vmIdOrConfig: number | any) {
     },
     body: JSON.stringify({
       action,
-      vmId: typeof vmIdOrConfig === 'number' ? vmIdOrConfig : undefined,
-      config: typeof vmIdOrConfig === 'object' ? vmIdOrConfig : undefined,
+      vmId,
+      config,
     }),
   });
 

@@ -8,10 +8,10 @@ const corsHeaders = {
 
 interface ProxmoxConfig {
   host: string;
-  username: string;
-  password: string;
-  realm: string;
+  tokenId: string;
+  tokenSecret: string;
   port: number;
+  node: string;
 }
 
 Deno.serve(async (req) => {
@@ -28,12 +28,14 @@ Deno.serve(async (req) => {
     }
 
     const proxmoxConfig: ProxmoxConfig = {
-      host: Deno.env.get('PROXMOX_HOST') || 'pve.triexpertservice.com',
-      username: Deno.env.get('PROXMOX_USERNAME') || 'root',
-      password: Deno.env.get('PROXMOX_PASSWORD') || '',
-      realm: Deno.env.get('PROXMOX_REALM') || 'pam',
-      port: parseInt(Deno.env.get('PROXMOX_PORT') || '8006'),
+      host: Deno.env.get('PVE_API_URL')?.replace('https://', '').replace(':8006/api2/json', '') || 'pve.triexpertservice.com',
+      tokenId: Deno.env.get('PVE_TOKEN_ID') || 'root@pam!server',
+      tokenSecret: Deno.env.get('PVE_TOKEN_SECRET') || '',
+      port: 8006,
+      node: Deno.env.get('PVE_DEFAULT_NODE') || 'pve',
     };
+
+    console.log('Getting real Proxmox stats from:', proxmoxConfig.host);
 
     const stats = await getProxmoxStats(proxmoxConfig);
 
@@ -45,94 +47,113 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error('Proxmox stats error:', error);
     
-    // Return mock data for demo purposes
-    const mockStats = {
-      status: 'demo',
-      uptime: 86400 * 7, // 7 days
-      cpu_usage: 35.5,
-      memory_used: 16.2,
-      memory_total: 32,
-      disk_used: 320,
-      disk_total: 1000,
-      active_vms: 12,
-      node_name: 'pve-node-01'
-    };
-
     return new Response(
-      JSON.stringify(mockStats),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error.message,
+        message: 'No se pudo conectar al servidor Proxmox. Verifica la configuración.',
+        host: Deno.env.get('PVE_API_URL'),
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
 
-async function getProxmoxTicket(config: ProxmoxConfig): Promise<{ ticket: string; CSRFPreventionToken: string }> {
-  const authUrl = `https://${config.host}:${config.port}/api2/json/access/ticket`;
+async function makeProxmoxRequest(config: ProxmoxConfig, endpoint: string) {
+  const url = `https://${config.host}:${config.port}/api2/json${endpoint}`;
   
-  const authResponse = await fetch(authUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      username: `${config.username}@${config.realm}`,
-      password: config.password,
-    }),
-  });
-
-  if (!authResponse.ok) {
-    throw new Error(`Proxmox authentication failed: ${authResponse.statusText}`);
-  }
-
-  const authData = await authResponse.json();
-  return {
-    ticket: authData.data.ticket,
-    CSRFPreventionToken: authData.data.CSRFPreventionToken,
+  const headers = {
+    'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
+    'Content-Type': 'application/json',
   };
-}
 
-async function getProxmoxStats(config: ProxmoxConfig) {
-  const { ticket } = await getProxmoxTicket(config);
-  
-  // Get node status
-  const statusUrl = `https://${config.host}:${config.port}/api2/json/nodes/pve/status`;
-  
-  const response = await fetch(statusUrl, {
-    headers: {
-      'Cookie': `PVEAuthCookie=${ticket}`,
-    },
+  console.log(`Making request to: ${url}`);
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to get Proxmox stats: ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`Proxmox API error ${response.status}: ${errorText}`);
   }
 
   const data = await response.json();
-  const nodeData = data.data;
+  return data.data;
+}
 
-  // Get VM count
-  const vmListUrl = `https://${config.host}:${config.port}/api2/json/nodes/pve/qemu`;
-  
-  const vmResponse = await fetch(vmListUrl, {
-    headers: {
-      'Cookie': `PVEAuthCookie=${ticket}`,
-    },
-  });
+async function getProxmoxStats(config: ProxmoxConfig) {
+  try {
+    // Get node status - REAL DATA
+    const nodeData = await makeProxmoxRequest(config, `/nodes/${config.node}/status`);
+    
+    console.log('Real node data received:', nodeData);
 
-  let activeVMs = 0;
-  if (vmResponse.ok) {
-    const vmData = await vmResponse.json();
-    activeVMs = vmData.data.filter((vm: any) => vm.status === 'running').length;
+    // Get VM list - REAL DATA  
+    const vmList = await makeProxmoxRequest(config, `/nodes/${config.node}/qemu`);
+    
+    console.log('Real VM list:', vmList);
+
+    // Count running VMs
+    const runningVMs = vmList.filter((vm: any) => vm.status === 'running').length;
+    const totalVMs = vmList.length;
+
+    // Get storage info - REAL DATA
+    let storageUsed = 0;
+    let storageTotal = 0;
+    
+    try {
+      const storageData = await makeProxmoxRequest(config, `/nodes/${config.node}/storage`);
+      const localStorage = storageData.find((s: any) => s.storage === 'local' || s.storage === 'local-lvm');
+      
+      if (localStorage) {
+        storageUsed = (localStorage.used || 0) / (1024 * 1024 * 1024); // Convert to GB
+        storageTotal = (localStorage.total || 0) / (1024 * 1024 * 1024); // Convert to GB
+      }
+    } catch (storageError) {
+      console.log('Could not get storage data:', storageError);
+    }
+
+    // Return real server metrics
+    return {
+      status: 'online',
+      connected: true,
+      timestamp: new Date().toISOString(),
+      
+      // Real server metrics
+      uptime: nodeData.uptime || 0,
+      cpu_usage: (nodeData.cpu || 0) * 100,
+      cpu_cores: nodeData.cpuinfo?.cpus || 0,
+      
+      // Memory in GB  
+      memory_used: (nodeData.memory?.used || 0) / (1024 * 1024 * 1024),
+      memory_total: (nodeData.memory?.total || 0) / (1024 * 1024 * 1024),
+      memory_usage_percent: nodeData.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 : 0,
+      
+      // Storage in GB
+      disk_used: storageUsed,
+      disk_total: storageTotal,
+      disk_usage_percent: storageTotal > 0 ? (storageUsed / storageTotal) * 100 : 0,
+      
+      // VM counts
+      active_vms: runningVMs,
+      total_vms: totalVMs,
+      
+      // Node info
+      node_name: nodeData.name || config.node,
+      pve_version: nodeData.pveversion || 'Unknown',
+      kernel_version: nodeData.kversion || 'Unknown',
+      
+      // Load averages
+      loadavg: nodeData.loadavg || [0, 0, 0],
+    };
+
+  } catch (error: any) {
+    console.error('Failed to get real Proxmox stats:', error);
+    throw new Error(`No se pudo conectar al servidor Proxmox: ${error.message}`);
   }
-
-  return {
-    status: 'online',
-    uptime: nodeData.uptime,
-    cpu_usage: (nodeData.cpu * 100),
-    memory_used: nodeData.memory.used / (1024 * 1024 * 1024), // Convert to GB
-    memory_total: nodeData.memory.total / (1024 * 1024 * 1024), // Convert to GB
-    disk_used: nodeData.rootfs.used / (1024 * 1024 * 1024), // Convert to GB
-    disk_total: nodeData.rootfs.total / (1024 * 1024 * 1024), // Convert to GB
-    active_vms: activeVMs,
-    node_name: nodeData.name || 'pve'
-  };
 }
