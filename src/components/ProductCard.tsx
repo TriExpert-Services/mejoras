@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from './ui/button';
 import { Product } from '../stripe-config';
 import { supabase } from '../lib/supabase';
+import { Server, Cpu, HardDrive, Network } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -55,24 +56,64 @@ export function ProductCard({ product, onPurchaseStart, onPurchaseComplete }: Pr
     }
   };
 
+  const getPriceText = () => {
+    if (product.mode === 'subscription') {
+      return `$${product.price.toFixed(2)}/mes`;
+    }
+    return `$${product.price.toFixed(2)}`;
+  };
+
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300">
       <CardHeader>
-        <CardTitle className="text-lg">{product.name}</CardTitle>
-        <CardDescription>{product.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1">
-        <div className="text-3xl font-bold text-green-600">
-          ${product.price.toFixed(2)}
+        <div className="flex items-center mb-3">
+          <Server className="h-6 w-6 text-blue-600 mr-2" />
+          <CardTitle className="text-xl">{product.name}</CardTitle>
         </div>
+        <CardDescription className="text-sm text-gray-600">
+          {product.description}
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="flex-1">
+        <div className="mb-4">
+          <div className="text-3xl font-bold text-blue-600 mb-1">
+            {getPriceText()}
+          </div>
+          {product.mode === 'subscription' && (
+            <div className="text-sm text-gray-500">Facturación mensual</div>
+          )}
+        </div>
+        
+        {product.specs && (
+          <div className="space-y-3">
+            <div className="flex items-center text-sm">
+              <Cpu className="h-4 w-4 text-gray-500 mr-2" />
+              <span>{product.specs.cpu}</span>
+            </div>
+            <div className="flex items-center text-sm">
+              <HardDrive className="h-4 w-4 text-gray-500 mr-2" />
+              <span>{product.specs.ram}</span>
+            </div>
+            <div className="flex items-center text-sm">
+              <HardDrive className="h-4 w-4 text-gray-500 mr-2" />
+              <span>{product.specs.disk}</span>
+            </div>
+            <div className="flex items-center text-sm">
+              <Network className="h-4 w-4 text-gray-500 mr-2" />
+              <span>{product.specs.bandwidth}</span>
+            </div>
+          </div>
+        )}
       </CardContent>
+      
       <CardFooter>
         <Button 
           onClick={handlePurchase} 
           disabled={loading}
-          className="w-full"
+          className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {loading ? 'Procesando...' : 'Comprar Ahora'}
+          {loading ? 'Procesando...' : 'Contratar Ahora'}
         </Button>
       </CardFooter>
     </Card>
