@@ -42,21 +42,46 @@ services:
       timeout: 5s
       retries: 5
 
-  # Nginx reverse proxy (optional)
-  nginx:
+  # PostgreSQL database (opcional - puedes usar Supabase hosted)
+  postgres:
+    image: postgres:16-alpine
+    container_name: vps-platform-postgres
+    environment:
+      POSTGRES_DB: vps_platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - vps-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nginx reverse proxy (opcional para SSL y load balancing)
+  nginx-proxy:
     image: nginx:alpine
-    container_name: vps-platform-nginx
+    container_name: vps-platform-proxy
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./docker/nginx-proxy.conf:/etc/nginx/nginx.conf
       - ./docker/ssl:/etc/nginx/ssl
+      - nginx_logs:/var/log/nginx
     depends_on:
       - app
     restart: unless-stopped
     networks:
       - vps-network
+    profiles:
+      - proxy
 
 networks:
   vps-network:
@@ -64,4 +89,8 @@ networks:
     
 volumes:
   redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  nginx_logs:
     driver: local

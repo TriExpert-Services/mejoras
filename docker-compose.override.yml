@@ -1,0 +1,34 @@
+# Override file for development environment
+# Use: docker-compose up -f docker-compose.yml -f docker-compose.override.yml
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      target: builder  # Use development stage
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+    ports:
+      - "5173:5173"  # Vite dev server port
+    environment:
+      - NODE_ENV=development
+    networks:
+      - vps-network
+
+  # Development database (optional)
+  postgres-dev:
+    extends:
+      service: postgres
+    environment:
+      POSTGRES_DB: vps_platform_dev
+    ports:
+      - "5433:5432"  # Different port for dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_dev_data:
+    driver: local

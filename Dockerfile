@@ -11,7 +11,7 @@ COPY postcss.config.js ./
 COPY tailwind.config.js ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source code
 COPY src ./src
@@ -23,6 +23,9 @@ RUN npm run build
 
 # Production stage
 FROM nginx:alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
 
 # Copy custom nginx config
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
