@@ -100,7 +100,8 @@ export function AdminPanel() {
   const [proxmoxStats, setProxmoxStats] = useState<ProxmoxStats | null>(null);
   const [vms, setVms] = useState<AdminVM[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [proxmoxLoading, setProxmoxLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
@@ -123,7 +124,13 @@ export function AdminPanel() {
   }, []);
 
   const fetchAdminData = async () => {
-    setLoading(true);
+    // Only show refreshing indicator for subsequent updates
+    if (stats.totalVMs > 0 || vms.length > 0) {
+      setRefreshing(true);
+    } else {
+      setInitialLoading(true);
+    }
+    
     setError(null);
     
     try {
@@ -166,7 +173,8 @@ export function AdminPanel() {
       setVms([]);
       setOrders([]);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -371,7 +379,7 @@ export function AdminPanel() {
     return `${days}d ${hours}h`;
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-center py-12">
@@ -462,7 +470,7 @@ export function AdminPanel() {
               {proxmoxStats ? getStatusBadge(proxmoxStats.connected ? 'online' : 'offline') : (
                 <Badge variant="secondary">Cargando...</Badge>
               )}
-              {(loading || proxmoxLoading) && (
+              {(refreshing || proxmoxLoading) && (
                 <div className="flex items-center text-xs text-blue-600">
                   <RefreshCw className="h-3 w-3 animate-spin mr-1" />
                   Actualizando...
@@ -666,9 +674,9 @@ export function AdminPanel() {
                 variant="outline"
                 size="sm"
                 onClick={fetchAdminData}
-                disabled={loading}
+                disabled={refreshing}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
             </div>
@@ -800,10 +808,10 @@ export function AdminPanel() {
                 fetchAdminData();
                 fetchProxmoxStats();
               }}
-              disabled={loading || proxmoxLoading}
+              disabled={refreshing || proxmoxLoading}
               className="flex items-center justify-center"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading || proxmoxLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing || proxmoxLoading ? 'animate-spin' : ''}`} />
               Actualizar Todo
             </Button>
             <Button
