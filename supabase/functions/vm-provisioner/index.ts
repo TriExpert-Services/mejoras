@@ -100,7 +100,7 @@ async function provisionVM(orderId: string) {
   try {
     // Generate unique VM ID
     const vmid = await generateVMID();
-    const ipAddress = await generateIPAddress();
+    const ipAddress = await generateUniqueIP();
     const vmName = `vm-${orderId.substring(0, 8)}`;
     const rootPassword = generatePassword();
 
