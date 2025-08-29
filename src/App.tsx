@@ -1,9 +1,59 @@
+import { useState, useEffect } from 'react';
 import { AuthWrapper } from './components/AuthWrapper';
 import { ProductGrid } from './components/ProductGrid';
 import { SuccessPage } from './components/SuccessPage';
 import { VMDashboard } from './components/VMDashboard';
 
 function App() {
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      // Check environment variables
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Faltan variables de entorno de Supabase');
+      }
+
+      setIsReady(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de configuración');
+      console.error('App initialization error:', err);
+    }
+  }, []);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Error de Configuración</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Recargar Página
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Inicializando aplicación...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Check if we're on the success page
   const isSuccessPage = window.location.pathname === '/success' || 
                        window.location.search.includes('session_id');

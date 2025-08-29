@@ -17,6 +17,7 @@ RUN npm ci
 # Copy source code
 COPY src ./src
 COPY index.html ./
+COPY vite-env.d.ts ./
 
 # Build the application
 RUN npm run build
