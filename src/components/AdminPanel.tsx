@@ -449,15 +449,18 @@ export function AdminPanel() {
                 </div>
               )}
               <Button
-                onClick={() => {
-                  setProxmoxLoading(true);
-                  fetchProxmoxStats();
-                }}
-                disabled={proxmoxLoading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Actualizar
-              </Button>
+               </CardTitle>
+               <Button
+                 onClick={() => {
+                   setRefreshing(true);
+                   fetchAdminData().finally(() => setRefreshing(false));
+                 }}
+                 disabled={refreshing}
+               >
+                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                 Actualizar
+               </Button>
+             </div>
             </div>
           </div>
         </CardHeader>
