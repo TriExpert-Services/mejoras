@@ -654,10 +654,10 @@ export function AdminPanel() {
               <CardTitle className="flex items-center">
                 <Server className="h-5 w-5 mr-2" />
                 VPS Recientes
-              </CardTitle>
-              <Button
                 onClick={() => {
                   setRefreshing(true);
+                  fetchAdminData().finally(() => setRefreshing(false));
+                }}
                 disabled={refreshing}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
