@@ -145,7 +145,8 @@ async function provisionVM(orderId: string) {
     }
 
     // Get template ID from environment or use default
-    console.log(`Creating VM from scratch (no template required)`);
+    const templateId = Deno.env.get('PVE_TEMPLATE_ID') || '9000';
+    console.log(`Using template ID: ${templateId}`);
     
     // Call Proxmox API to create VM
     const proxmoxResult = await callProxmoxAPI('create', undefined, {
@@ -154,6 +155,7 @@ async function provisionVM(orderId: string) {
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
       disk: order.vm_specs.disk_gb,
+      template: parseInt(templateId),
       node: 'pve',
       password: rootPassword,
     });
