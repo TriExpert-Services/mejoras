@@ -449,10 +449,11 @@ export function AdminPanel() {
                 </div>
               )}
               <Button
-                  setRefreshing(true);
-                  fetchProxmoxStatsSilent();
-                onClick={fetchProxmoxStats}
-                disabled={refreshing}
+                onClick={() => {
+                  setProxmoxLoading(true);
+                  fetchProxmoxStats();
+                }}
+                disabled={proxmoxLoading}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Actualizar
@@ -594,7 +595,7 @@ export function AdminPanel() {
                 onClick={fetchProxmoxStats}
                 disabled={proxmoxLoading}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${proxmoxLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${(proxmoxLoading || refreshing) ? 'animate-spin' : ''}`} />
                 Reintentar Conexión
               </Button>
             </div>
@@ -655,9 +656,10 @@ export function AdminPanel() {
                 VPS Recientes
               </CardTitle>
               <Button
+                onClick={() => {
                   setRefreshing(true);
-                  fetchAdminDataSilent();
-                onClick={fetchAdminData}
+                  fetchAdminData().finally(() => setRefreshing(false));
+                }}
                 disabled={refreshing}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
@@ -790,7 +792,7 @@ export function AdminPanel() {
               variant="outline"
               onClick={() => {
                 setRefreshing(true);
-                backgroundRefresh();
+                Promise.all([fetchAdminData(), fetchProxmoxStats()]).finally(() => setRefreshing(false));
               }}
               disabled={refreshing}
               className="flex items-center justify-center"
