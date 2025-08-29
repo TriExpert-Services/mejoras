@@ -58,6 +58,11 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   }, [vmId]);
 
   const fetchMetrics = async () => {
+    // Only show loading on initial fetch
+    if (metrics.length === 0) {
+      setLoading(true);
+    }
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -185,7 +190,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
                   </div>
                 )}
                 <Button variant="outline" size="sm" onClick={fetchMetrics}>
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
             </div>

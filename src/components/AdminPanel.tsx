@@ -104,7 +104,10 @@ export function AdminPanel() {
   }, []);
 
   const fetchAdminData = async () => {
-    setLoading(true);
+    // Only set loading to true on initial load, not on refresh
+    if (stats.totalUsers === 0 && stats.totalVMs === 0) {
+      setLoading(true);
+    }
     setError(null);
     
     try {
@@ -152,7 +155,10 @@ export function AdminPanel() {
   };
 
   const fetchProxmoxStats = async () => {
-    setProxmoxLoading(true);
+    // Only set loading for manual refresh, not auto-refresh
+    if (proxmoxStats === null) {
+      setProxmoxLoading(true);
+    }
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -443,12 +449,12 @@ export function AdminPanel() {
                 </div>
               )}
               <Button
-                variant="outline"
-                size="sm"
+                  setRefreshing(true);
+                  fetchProxmoxStatsSilent();
                 onClick={fetchProxmoxStats}
-                disabled={proxmoxLoading}
+                disabled={refreshing}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${proxmoxLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
             </div>
@@ -649,12 +655,12 @@ export function AdminPanel() {
                 VPS Recientes
               </CardTitle>
               <Button
-                variant="outline"
-                size="sm"
+                  setRefreshing(true);
+                  fetchAdminDataSilent();
                 onClick={fetchAdminData}
-                disabled={loading}
+                disabled={refreshing}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
             </div>

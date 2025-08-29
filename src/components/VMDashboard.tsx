@@ -80,6 +80,11 @@ export function VMDashboard() {
   }, []);
 
   const fetchUserData = async () => {
+    // Only show loading spinner on initial load
+    if (vms.length === 0 && orders.length === 0) {
+      setLoading(true);
+    }
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -349,12 +354,12 @@ export function VMDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setLoading(true);
-                          fetchUserData();
+                          setRefreshing(true);
+                          fetchUserDataSilent();
                         }}
                         disabled={actionLoading[vm.id]}
                       >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                         Actualizar
                       </Button>
                     </div>
