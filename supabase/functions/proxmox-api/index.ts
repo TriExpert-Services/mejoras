@@ -24,13 +24,12 @@ Deno.serve(async (req) => {
     console.log(`Proxmox API call: action=${action}, vmId=${vmId}`, config ? 'with config' : 'no config');
 
     // Get Proxmox configuration from environment
-    const proxmoxHost = Deno.env.get('PVE_HOST');
+    const proxmoxApiUrl = Deno.env.get('PVE_API_URL');
     const tokenId = Deno.env.get('PVE_TOKEN_ID');
     const tokenSecret = Deno.env.get('PVE_TOKEN_SECRET');
     const defaultNode = Deno.env.get('PVE_DEFAULT_NODE') || 'pve';
-    const tlsInsecure = Deno.env.get('PVE_TLS_INSECURE') === 'true';
 
-    if (!proxmoxHost || !tokenId || !tokenSecret) {
+    if (!proxmoxApiUrl || !tokenId || !tokenSecret) {
       throw new Error('Missing Proxmox configuration');
     }
 
@@ -109,8 +108,7 @@ Deno.serve(async (req) => {
     }
 
     // Make request to Proxmox API
-    const protocol = tlsInsecure ? 'http' : 'https';
-    const url = `${protocol}://${proxmoxHost}:8006/api2/json${endpoint}`;
+    const url = `${proxmoxApiUrl}/api2/json${endpoint}`;
     
     console.log(`Making Proxmox API request: ${method} ${url}`);
 
