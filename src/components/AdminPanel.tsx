@@ -17,8 +17,8 @@ import {
   Cpu,
   HardDrive,
   MemoryStick,
-  Network,
-  Monitor
+  Monitor,
+  AlertCircle
 } from 'lucide-react';
 
 interface AdminStats {
@@ -30,14 +30,22 @@ interface AdminStats {
 
 interface ProxmoxStats {
   status: string;
+  connected: boolean;
   uptime: number;
   cpu_usage: number;
+  cpu_cores: number;
   memory_used: number;
   memory_total: number;
+  memory_usage_percent: number;
   disk_used: number;
   disk_total: number;
+  disk_usage_percent: number;
   active_vms: number;
+  total_vms: number;
   node_name: string;
+  pve_version?: string;
+  kernel_version?: string;
+  timestamp: string;
 }
 
 interface AdminVM {
@@ -82,99 +90,6 @@ export function AdminPanel() {
 
   const fetchAdminData = async () => {
     setLoading(true);
-    
-    try {
-      // Fetch basic stats from database directly
-      const { count: vmCount } = await supabase
-        .from('vms')
-        .select('*', { count: 'exact', head: true })
-        .is('deleted_at', null);
-      
-      const { count: activeVMs } = await supabase
-        .from('vms')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'running')
-        .is('deleted_at', null);
-
-      const { data: revenueData } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'completed');
-
-      const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
-
-      // Try to get user count (will fail without service role, so default to 0)
-      let totalUsers = 0;
-      try {
-        const { data: authUsers } = await supabase.auth.admin.listUsers();
-        totalUsers = authUsers?.users?.length || 0;
-      } catch (error) {
-        console.log('Cannot fetch user count without service role');
-      }
-
-      setStats({
-        totalUsers,
-        totalVMs: vmCount || 0,
-        activeVMs: activeVMs || 0,
-        totalRevenue
-      });
-
-      // Fetch VMs with user info
-      const { data: vmsData } = await supabase
-        .from('vms')
-        .select(`
-          id,
-          name,
-          status,
-          created_at,
-          cpu_cores,
-          ram_gb,
-          user_id,
-          vm_specs (name)
-        `)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      const vmsWithEmails = (vmsData || []).map(vm => ({
-        ...vm,
-        user_email: 'Usuario',
-        vm_spec_name: (vm.vm_specs as any)?.name || 'Sin especificar'
-      }));
-
-      setVms(vmsWithEmails);
-
-      // Fetch orders
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          status,
-          total_amount,
-          created_at,
-          user_id,
-          vm_specs (name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      const ordersWithEmails = (ordersData || []).map(order => ({
-        ...order,
-        user_email: 'Usuario',
-        vm_spec_name: (order.vm_specs as any)?.name || 'Sin especificar'
-      }));
-
-      setOrders(ordersWithEmails);
-
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProxmoxStats = async () => {
-    setProxmoxLoading(true);
     setError(null);
     
     try {
@@ -183,6 +98,55 @@ export function AdminPanel() {
       if (!session) {
         throw new Error('No hay sesión activa');
       }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        throw new Error(errorData.error || `Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      setStats(data.stats);
+      setVms(data.vms || []);
+      setOrders(data.orders || []);
+
+    } catch (error: any) {
+      console.error('Error fetching admin data:', error);
+      setError(error.message);
+      
+      // Set fallback data
+      setStats({
+        totalUsers: 0,
+        totalVMs: 0,
+        totalRevenue: 0,
+        activeVMs: 0
+      });
+      setVms([]);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProxmoxStats = async () => {
+    setProxmoxLoading(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
+      console.log('Fetching real Proxmox stats...');
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxmox-stats`, {
         method: 'GET',
@@ -195,28 +159,38 @@ export function AdminPanel() {
       const data = await response.json();
       
       if (response.ok) {
+        console.log('Real Proxmox stats received:', data);
         setProxmoxStats(data);
-        if (data.fallback) {
-          setError('Mostrando datos demo - no se pudo conectar al servidor Proxmox real');
+        
+        if (!data.connected) {
+          setError(`Error de conexión: ${data.error || 'No se pudo conectar al servidor Proxmox'}`);
+        } else {
+          setError(null);
         }
       } else {
-        throw new Error(data.error || 'Error al obtener estadísticas');
+        throw new Error(data.error || `Error ${response.status}`);
       }
     } catch (error: any) {
       console.error('Error connecting to Proxmox:', error);
-      setError(`No se pudo conectar a Proxmox: ${error.message}`);
+      setError(`Error de Proxmox: ${error.message}`);
       
-      // Set fallback data with error indicator
+      // Set disconnected state
       setProxmoxStats({
         status: 'offline',
+        connected: false,
         uptime: 0,
         cpu_usage: 0,
+        cpu_cores: 0,
         memory_used: 0,
         memory_total: 0,
+        memory_usage_percent: 0,
         disk_used: 0,
         disk_total: 0,
+        disk_usage_percent: 0,
         active_vms: 0,
-        node_name: 'Desconectado'
+        total_vms: 0,
+        node_name: 'Desconectado',
+        timestamp: new Date().toISOString()
       });
     } finally {
       setProxmoxLoading(false);
@@ -227,6 +201,12 @@ export function AdminPanel() {
     setActionLoading(prev => ({ ...prev, [vmId]: true }));
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
       if (action === 'delete') {
         const { error } = await supabase
           .from('vms')
@@ -236,14 +216,38 @@ export function AdminPanel() {
         if (error) throw error;
         await fetchAdminData();
       } else {
-        console.log(`${action}ing VM ${vmId}`);
-        // Here you would call the Proxmox API to start/stop the VM
-        alert(`Función ${action} en desarrollo`);
+        // Get VM's order ID for Proxmox operations
+        const { data: vm } = await supabase
+          .from('vms')
+          .select('order_id')
+          .eq('id', vmId)
+          .single();
+        
+        if (!vm) throw new Error('VM no encontrada');
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-provisioner`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId: vm.order_id,
+            action,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Error al ${action === 'start' ? 'iniciar' : 'detener'} el VM`);
+        }
+
+        await fetchAdminData();
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error ${action}ing VM:`, error);
-      alert(`Error al ${action === 'start' ? 'iniciar' : action === 'stop' ? 'detener' : 'eliminar'} el VM`);
+      setError(`Error al ${action === 'start' ? 'iniciar' : action === 'stop' ? 'detener' : 'eliminar'} el VM: ${error.message}`);
     } finally {
       setActionLoading(prev => ({ ...prev, [vmId]: false }));
     }
@@ -268,6 +272,8 @@ export function AdminPanel() {
   };
 
   const formatUptime = (seconds: number) => {
+    if (!seconds) return 'Detenido';
+    
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     return `${days}d ${hours}h`;
@@ -290,6 +296,16 @@ export function AdminPanel() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel de Administración</h1>
         <p className="text-gray-600">Gestiona usuarios, VPS y recursos del servidor Proxmox</p>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+            <p className="text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -351,7 +367,9 @@ export function AdminPanel() {
               Recursos del Servidor Proxmox
             </CardTitle>
             <div className="flex items-center gap-3">
-              {getStatusBadge(proxmoxStats?.status || 'offline')}
+              {proxmoxStats ? getStatusBadge(proxmoxStats.connected ? 'online' : 'offline') : (
+                <Badge variant="secondary">Cargando...</Badge>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -365,7 +383,7 @@ export function AdminPanel() {
           </div>
         </CardHeader>
         <CardContent>
-          {proxmoxStats ? (
+          {proxmoxStats && proxmoxStats.connected ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
                 <div className="flex items-center justify-between mb-3">
@@ -375,11 +393,11 @@ export function AdminPanel() {
                   </span>
                 </div>
                 <h4 className="font-semibold text-blue-900 mb-1">CPU Usage</h4>
-                <p className="text-sm text-blue-600">Uso del procesador</p>
+                <p className="text-sm text-blue-600">{proxmoxStats.cpu_cores} cores</p>
                 <div className="w-full bg-blue-200 rounded-full h-2 mt-3">
                   <div 
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${proxmoxStats.cpu_usage}%` }}
+                    style={{ width: `${Math.min(proxmoxStats.cpu_usage, 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -388,17 +406,17 @@ export function AdminPanel() {
                 <div className="flex items-center justify-between mb-3">
                   <MemoryStick className="h-8 w-8 text-green-600" />
                   <span className="text-2xl font-bold text-green-700">
-                    {((proxmoxStats.memory_used / proxmoxStats.memory_total) * 100).toFixed(1)}%
+                    {proxmoxStats.memory_usage_percent.toFixed(1)}%
                   </span>
                 </div>
                 <h4 className="font-semibold text-green-900 mb-1">RAM</h4>
                 <p className="text-sm text-green-600">
-                  {proxmoxStats.memory_used.toFixed(1)}GB / {proxmoxStats.memory_total}GB
+                  {proxmoxStats.memory_used.toFixed(1)}GB / {proxmoxStats.memory_total.toFixed(0)}GB
                 </p>
                 <div className="w-full bg-green-200 rounded-full h-2 mt-3">
                   <div 
                     className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${(proxmoxStats.memory_used / proxmoxStats.memory_total) * 100}%` }}
+                    style={{ width: `${Math.min(proxmoxStats.memory_usage_percent, 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -407,17 +425,17 @@ export function AdminPanel() {
                 <div className="flex items-center justify-between mb-3">
                   <HardDrive className="h-8 w-8 text-purple-600" />
                   <span className="text-2xl font-bold text-purple-700">
-                    {((proxmoxStats.disk_used / proxmoxStats.disk_total) * 100).toFixed(1)}%
+                    {proxmoxStats.disk_usage_percent.toFixed(1)}%
                   </span>
                 </div>
                 <h4 className="font-semibold text-purple-900 mb-1">Almacenamiento</h4>
                 <p className="text-sm text-purple-600">
-                  {proxmoxStats.disk_used}GB / {proxmoxStats.disk_total}GB
+                  {proxmoxStats.disk_used.toFixed(0)}GB / {proxmoxStats.disk_total.toFixed(0)}GB
                 </p>
                 <div className="w-full bg-purple-200 rounded-full h-2 mt-3">
                   <div 
                     className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${(proxmoxStats.disk_used / proxmoxStats.disk_total) * 100}%` }}
+                    style={{ width: `${Math.min(proxmoxStats.disk_usage_percent, 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -433,23 +451,25 @@ export function AdminPanel() {
                 <p className="text-sm text-orange-600">Nodo: {proxmoxStats.node_name}</p>
                 <div className="flex items-center mt-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-orange-600">Sistema operativo</span>
+                  <span className="text-xs text-orange-600">{proxmoxStats.active_vms}/{proxmoxStats.total_vms} VMs</span>
                 </div>
               </div>
             </div>
           ) : (
             <div className="text-center py-8">
-              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No se pudieron cargar los recursos del servidor</p>
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="font-medium text-gray-900 mb-2">No se pudo conectar al servidor Proxmox</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Verifica la configuración del servidor en las variables de entorno
+              </p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={fetchProxmoxStats}
                 disabled={proxmoxLoading}
-                className="mt-4"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${proxmoxLoading ? 'animate-spin' : ''}`} />
-                Reintentar
+                Reintentar Conexión
               </Button>
             </div>
           )}
@@ -620,6 +640,22 @@ export function AdminPanel() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Debug Info */}
+      {proxmoxStats && !proxmoxStats.connected && (
+        <Card className="mt-4 border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-800 text-lg">Debug de Conexión</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-orange-700 space-y-2">
+              <p><strong>Estado:</strong> No conectado al servidor Proxmox</p>
+              <p><strong>URL esperada:</strong> https://pve.triexpertservice.com:8006</p>
+              <p><strong>Verificar:</strong> Variables de entorno PVE_* en Supabase</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

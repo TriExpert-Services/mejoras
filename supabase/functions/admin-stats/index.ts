@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify admin access
+    // Verify user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -44,8 +44,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user is admin - more flexible check
-    const adminEmails = ['admin@triexpertservice.com', 'admin@example.com'];
+    // Check if user is admin
+    const adminEmails = ['admin@triexpertservice.com'];
     if (!adminEmails.includes(user.email || '')) {
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),
@@ -54,11 +54,9 @@ Deno.serve(async (req) => {
     }
 
     // Get admin statistics
-    const [stats, vms, orders] = await Promise.all([
-      getAdminStats(),
-      getRecentVMs(),
-      getRecentOrders()
-    ]);
+    const stats = await getAdminStats();
+    const vms = await getRecentVMs();
+    const orders = await getRecentOrders();
 
     return new Response(
       JSON.stringify({ stats, vms, orders }),
@@ -79,20 +77,6 @@ Deno.serve(async (req) => {
 
 async function getAdminStats() {
   try {
-    // Get user count - handle potential auth admin API limitations
-    let totalUsers = 0;
-    try {
-      const { data: usersResponse } = await supabase.auth.admin.listUsers();
-      totalUsers = usersResponse?.users?.length || 0;
-    } catch (authError) {
-      console.log('Could not get user count from auth API:', authError);
-      // Fallback: count stripe_customers as proxy for users
-      const { count } = await supabase
-        .from('stripe_customers')
-        .select('*', { count: 'exact', head: true });
-      totalUsers = count || 0;
-    }
-
     // Get VM counts
     const { count: totalVMs } = await supabase
       .from('vms')
@@ -113,20 +97,21 @@ async function getAdminStats() {
 
     const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
 
+    // Get user count from stripe_customers as proxy
+    const { count: totalUsers } = await supabase
+      .from('stripe_customers')
+      .select('*', { count: 'exact', head: true })
+      .is('deleted_at', null);
+
     return {
-      totalUsers,
+      totalUsers: totalUsers || 0,
       totalVMs: totalVMs || 0,
       activeVMs: activeVMs || 0,
       totalRevenue
     };
   } catch (error) {
     console.error('Error getting admin stats:', error);
-    return {
-      totalUsers: 0,
-      totalVMs: 0,
-      activeVMs: 0,
-      totalRevenue: 0
-    };
+    throw error;
   }
 }
 
@@ -148,15 +133,14 @@ async function getRecentVMs() {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    // Return VMs with fallback emails (auth.admin might not be available)
     return (vmsData || []).map(vm => ({
       ...vm,
-      user_email: 'usuario@ejemplo.com', // Fallback - in production, implement user lookup
+      user_email: 'Usuario', // Fallback since we can't get email easily
       vm_spec_name: (vm.vm_specs as any)?.name || 'Sin especificar'
     }));
   } catch (error) {
     console.error('Error getting recent VMs:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -175,15 +159,13 @@ async function getRecentOrders() {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    // Return orders with fallback emails
     return (ordersData || []).map(order => ({
       ...order,
-      user_email: 'usuario@ejemplo.com', // Fallback
+      user_email: 'Usuario', // Fallback
       vm_spec_name: (order.vm_specs as any)?.name || 'Sin especificar'
     }));
   } catch (error) {
     console.error('Error getting recent orders:', error);
-    return [];
+    throw error;
   }
 }
-</invoke>

@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
+    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -37,7 +38,6 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'GET') {
-      // Get metrics for user's VMs
       const vmId = new URL(req.url).searchParams.get('vmId');
       
       if (vmId) {
@@ -90,6 +90,10 @@ async function getVMMetrics(userId: string, vmId: string) {
 
     if (error || !vm) {
       throw new Error('VM no encontrada');
+    }
+
+    if (!vm.proxmox_vmid) {
+      throw new Error('VM no tiene ID de Proxmox asignado');
     }
 
     // Get real-time metrics from Proxmox
@@ -151,6 +155,10 @@ async function getAllUserVMMetrics(userId: string) {
     const metrics = await Promise.all(
       vms.map(async (vm) => {
         try {
+          if (!vm.proxmox_vmid) {
+            throw new Error('VM sin ID de Proxmox');
+          }
+
           const proxmoxMetrics = await getProxmoxVMMetrics(vm.proxmox_vmid);
           
           return {
@@ -177,12 +185,26 @@ async function getAllUserVMMetrics(userId: string) {
             vm_name: vm.name,
             vm_spec: (vm.vm_specs as any)?.name,
             status: vm.status,
-            error: 'No se pudieron obtener métricas',
+            error: 'No se pudieron obtener métricas del servidor',
+            
+            // Fallback data
+            running: false,
+            cpu_usage: 0,
+            memory_used_mb: 0,
+            memory_total_mb: vm.ram_gb * 1024,
+            memory_usage_percent: 0,
+            disk_used_gb: 0,
+            disk_total_gb: vm.disk_gb,
+            disk_usage_percent: 0,
+            network_in_mb: 0,
+            network_out_mb: 0,
+            uptime: 0,
             
             cpu_cores: vm.cpu_cores,
             ram_gb: vm.ram_gb,
             disk_gb: vm.disk_gb,
             ip_address: vm.ip_address,
+            last_updated: new Date().toISOString(),
           };
         }
       })
@@ -206,6 +228,8 @@ async function getProxmoxVMMetrics(proxmoxVmId: number) {
       node: Deno.env.get('PVE_DEFAULT_NODE') || 'pve',
     };
 
+    console.log(`Getting real metrics for VM ${proxmoxVmId}...`);
+
     // Get current VM status and metrics
     const statusUrl = `https://${config.host}:${config.port}/api2/json/nodes/${config.node}/qemu/${proxmoxVmId}/status/current`;
     
@@ -218,28 +242,33 @@ async function getProxmoxVMMetrics(proxmoxVmId: number) {
     });
 
     if (!response.ok) {
-      throw new Error(`Proxmox API error ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Proxmox API error ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
     const vmData = data.data;
 
-    // Get network interfaces
+    console.log(`Real VM ${proxmoxVmId} data:`, vmData);
+
+    // Get network interfaces if VM is running
     let networkInfo = null;
-    try {
-      const networkUrl = `https://${config.host}:${config.port}/api2/json/nodes/${config.node}/qemu/${proxmoxVmId}/agent/network-get-interfaces`;
-      const networkResponse = await fetch(networkUrl, {
-        headers: {
-          'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
-        },
-      });
-      
-      if (networkResponse.ok) {
-        const networkData = await networkResponse.json();
-        networkInfo = networkData.data;
+    if (vmData.status === 'running') {
+      try {
+        const networkUrl = `https://${config.host}:${config.port}/api2/json/nodes/${config.node}/qemu/${proxmoxVmId}/agent/network-get-interfaces`;
+        const networkResponse = await fetch(networkUrl, {
+          headers: {
+            'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
+          },
+        });
+        
+        if (networkResponse.ok) {
+          const networkData = await networkResponse.json();
+          networkInfo = networkData.data;
+        }
+      } catch (error) {
+        console.log('Could not get network info (agent may not be running):', error);
       }
-    } catch (error) {
-      console.log('Could not get network info:', error);
     }
 
     return {
