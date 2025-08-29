@@ -11,7 +11,7 @@ COPY postcss.config.js ./
 COPY tailwind.config.js ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install --production=false
 
 # Copy source code
 COPY src ./src
