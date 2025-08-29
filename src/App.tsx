@@ -1,4 +1,3 @@
-import React from 'react';
 import { AuthWrapper } from './components/AuthWrapper';
 import { ProductGrid } from './components/ProductGrid';
 import { SuccessPage } from './components/SuccessPage';
