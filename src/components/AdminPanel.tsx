@@ -92,6 +92,14 @@ export function AdminPanel() {
   useEffect(() => {
     fetchAdminData();
     fetchProxmoxStats();
+    
+    // Auto-refresh stats every 10 seconds
+    const interval = setInterval(() => {
+      fetchAdminData();
+      fetchProxmoxStats();
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchAdminData = async () => {
@@ -426,6 +434,12 @@ export function AdminPanel() {
             <div className="flex items-center gap-3">
               {proxmoxStats ? getStatusBadge(proxmoxStats.connected ? 'online' : 'offline') : (
                 <Badge variant="secondary">Cargando...</Badge>
+              )}
+              {(loading || proxmoxLoading) && (
+                <div className="flex items-center text-xs text-blue-600">
+                  <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                  Actualizando...
+                </div>
               )}
               <Button
                 variant="outline"

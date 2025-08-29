@@ -56,6 +56,9 @@ export function VMDashboard() {
   useEffect(() => {
     fetchUserData();
     
+    // Auto-refresh VM data every 15 seconds
+    const dataRefreshInterval = setInterval(fetchUserData, 15000);
+    
     // Set up real-time subscription for VMs
     const vmSubscription = supabase
       .channel('user-vms')
@@ -71,6 +74,7 @@ export function VMDashboard() {
       .subscribe();
 
     return () => {
+      clearInterval(dataRefreshInterval);
       vmSubscription.unsubscribe();
     };
   }, []);

@@ -52,8 +52,8 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   useEffect(() => {
     fetchMetrics();
     
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchMetrics, 30000);
+    // Auto-refresh every 5 seconds for real-time metrics
+    const interval = setInterval(fetchMetrics, 5000);
     return () => clearInterval(interval);
   }, [vmId]);
 
