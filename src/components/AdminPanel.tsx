@@ -46,6 +46,9 @@ interface ProxmoxStats {
   pve_version?: string;
   kernel_version?: string;
   timestamp: string;
+  debug?: {
+    storage_details: any[];
+  };
 }
 
 interface AdminVM {
@@ -384,7 +387,7 @@ export function AdminPanel() {
         </CardHeader>
         <CardContent>
           {proxmoxStats && proxmoxStats.connected ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
                 <div className="flex items-center justify-between mb-3">
                   <Cpu className="h-8 w-8 text-blue-600" />
@@ -455,7 +458,43 @@ export function AdminPanel() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : null}
+          
+          {/* Show detailed storage information */}
+          {proxmoxStats && proxmoxStats.connected && proxmoxStats.debug?.storage_details && (
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                Almacenamientos ({proxmoxStats.debug.storage_details.length})
+              </h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                {proxmoxStats.debug.storage_details.map((storage: any, index: number) => (
+                  <div key={storage.name} className="bg-white p-4 rounded-lg shadow-sm border">
+                    <h4 className="font-medium text-gray-900 mb-2">{storage.name}</h4>
+                    <p className="text-sm text-gray-600 mb-2">Tipo: {storage.type}</p>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Usado:</span>
+                      <span>{storage.used_gb.toFixed(1)} GB</span>
+                    </div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Total:</span>
+                      <span>{storage.total_gb.toFixed(1)} GB</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${Math.min(storage.usage_percent, 100)}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {storage.usage_percent.toFixed(1)}% usado
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {proxmoxStats && !proxmoxStats.connected ? (
             <div className="text-center py-8">
               <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="font-medium text-gray-900 mb-2">No se pudo conectar al servidor Proxmox</h3>
@@ -472,7 +511,7 @@ export function AdminPanel() {
                 Reintentar Conexión
               </Button>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
@@ -648,10 +687,14 @@ export function AdminPanel() {
             <CardTitle className="text-orange-800 text-lg">Debug de Conexión</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-orange-700 space-y-2">
+            <div className="text-sm text-orange-700 space-y-1">
               <p><strong>Estado:</strong> No conectado al servidor Proxmox</p>
-              <p><strong>URL esperada:</strong> https://pve.triexpertservice.com:8006</p>
-              <p><strong>Verificar:</strong> Variables de entorno PVE_* en Supabase</p>
+              <p><strong>URL:</strong> https://pve.triexpertservice.com:8006</p>
+              <p><strong>Node:</strong> pve</p>
+              <p><strong>Token:</strong> root@pam!server</p>
+              <hr className="my-2" />
+              <p className="text-red-600"><strong>Configurar en Supabase Dashboard:</strong></p>
+              <p className="font-mono text-xs">Settings → Edge Functions → Environment Variables</p>
             </div>
           </CardContent>
         </Card>
