@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { supabase } from '../lib/supabase';
+import { products } from '../stripe-config';
 import { 
   Users, 
   Server, 
@@ -258,67 +259,62 @@ export function AdminPanel() {
   };
   
   const handleCreateVM = async (productId: string) => {
-    const actionKey = `create-${productId.includes('basic') ? 'basic' : 'premium'}`;
+    const actionKey = productId;
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No hay sesión activa');
 
-      // Get VM spec for the product
+      // Find product in our config
+      const product = products.find(p => p.id === productId);
+      if (!product) throw new Error('Producto no encontrado');
+      
+      // Get VM spec UUID by name from database
       const { data: vmSpec, error: specError } = await supabase
         .from('vm_specs')
-        .select('*')
-        .eq('id', productId)
+        .select('id')
+        .eq('name', product.name)
         .single();
 
-      if (specError || !vmSpec) {
-        // Fallback: create based on product ID
-        const specs = {
-          'vps-basic-1': { cpu_cores: 1, ram_gb: 2, disk_gb: 40, price: 20 },
-          'vps-premium-1': { cpu_cores: 4, ram_gb: 8, disk_gb: 160, price: 24 },
-        };
-        
-        const spec = specs[productId as keyof typeof specs];
-        if (!spec) throw new Error('Producto no encontrado');
+      if (specError || !vmSpec) throw new Error('Especificación de VM no encontrada en la base de datos');
 
-        // Create manual order
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            user_id: session.user.id,
-            stripe_session_id: `manual-${Date.now()}`,
-            vm_spec_id: productId,
-            status: 'pending',
-            total_amount: spec.price,
-            currency: 'usd',
-          })
-          .select()
-          .single();
+      // Create manual order with proper UUID
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: session.user.id,
+          stripe_session_id: `manual-admin-${Date.now()}`,
+          vm_spec_id: vmSpec.id, // Use the actual UUID
+          status: 'pending',
+          total_amount: product.price,
+          currency: 'usd',
+        })
+        .select()
+        .single();
 
-        if (orderError) throw new Error(`Error creando orden: ${orderError.message}`);
+      if (orderError) throw new Error(`Error creando orden: ${orderError.message}`);
 
-        // Trigger VM provisioning
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-provisioner`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            orderId: order.id,
-            action: 'provision',
-          }),
-        });
+      // Trigger VM provisioning
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-provisioner`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          action: 'provision',
+        }),
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Error creando VM');
-        }
-
-        alert('VM creado exitosamente! Revisa la lista de VPS.');
-        await fetchAdminData();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error creando VM');
       }
+
+      alert('VM creado exitosamente! Revisa la lista de VPS.');
+      await fetchAdminData();
       
     } catch (error: any) {
       console.error('Error creating VM:', error);
@@ -617,19 +613,19 @@ export function AdminPanel() {
               <div className="grid grid-cols-2 gap-4">
                 <Button
                   onClick={() => handleCreateVM('vps-basic-1')}
-                  disabled={actionLoading['create-basic']}
+                  disabled={actionLoading['vps-basic-1']}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {actionLoading['create-basic'] ? 'Creando...' : 'VPS Básico'}
+                  {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
                   <span className="block text-xs">1 CPU • 2GB • 40GB</span>
                 </Button>
                 
                 <Button
                   onClick={() => handleCreateVM('vps-premium-1')}
-                  disabled={actionLoading['create-premium']}
+                  disabled={actionLoading['vps-premium-1']}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
-                  {actionLoading['create-premium'] ? 'Creando...' : 'VPS Premium'}
+                  {actionLoading['vps-premium-1'] ? 'Creando...' : 'VPS Premium'}
                   <span className="block text-xs">4 CPU • 8GB • 160GB</span>
                 </Button>
               </div>

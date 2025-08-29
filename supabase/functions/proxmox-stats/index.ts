@@ -251,7 +251,7 @@ async function getProxmoxStats(config: any) {
         running_vms: runningVMs,
         storage_available: !!allStorageData,
         storage_count: storageDetails.length,
-        storage_details: storageDetails
+        storage_details: storageDetails,
         vm_list: vmList ? vmList.map((vm: any) => ({
           vmid: vm.vmid,
           name: vm.name,
