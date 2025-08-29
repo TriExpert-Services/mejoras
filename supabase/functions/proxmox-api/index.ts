@@ -72,7 +72,6 @@ Deno.serve(async (req) => {
         method = 'POST';
         body = new URLSearchParams({
           newid: config.vmid.toString(),
-          vmid: config.vmid.toString(),
           name: config.name,
           node: config.node,
           storage: Deno.env.get('PVE_DEFAULT_STORAGE') || 'local-lvm',
