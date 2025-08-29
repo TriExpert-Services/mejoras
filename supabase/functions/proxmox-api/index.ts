@@ -196,6 +196,8 @@ async function provisionVM(orderId: string) {
 
     console.log(`VM provisioned successfully: ${vmid}`);
 
+    const ipAddress = 'Configurando...';
+
     return {
       vmId: vm.id,
       proxmoxVmId: vmid,
@@ -293,6 +295,8 @@ async function callProxmoxAPI(action: string, vmId?: number, config?: any) {
   });
 
   const result = await response.json();
+  
+  if (!response.ok) {
     throw new Error(result.error || 'Proxmox API call failed');
   }
 
