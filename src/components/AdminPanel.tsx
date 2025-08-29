@@ -94,7 +94,6 @@ export function AdminPanel() {
       console.error('Error fetching admin data:', error);
       setError(error instanceof Error ? error.message : 'Error al cargar datos de admin');
       
-      // Fallback: try to get basic data from database directly
       await fetchBasicData();
     } finally {
       setLoading(false);
@@ -128,51 +127,6 @@ export function AdminPanel() {
         totalRevenue
       });
 
-      const { data: vmsData } = await supabase
-        .from('vms')
-        .select(`
-          id,
-          name,
-          status,
-          created_at,
-          cpu_cores,
-          ram_gb,
-          user_id,
-          vm_specs (name)
-        `)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      const vmsBasic = (vmsData || []).map(vm => ({
-        ...vm,
-        user_email: 'Usuario',
-        vm_spec_name: (vm.vm_specs as any)?.name || 'Sin especificar'
-      }));
-
-      setVms(vmsBasic);
-
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          status,
-          total_amount,
-          created_at,
-          user_id,
-          vm_specs (name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      const ordersBasic = (ordersData || []).map(order => ({
-        ...order,
-        user_email: 'Usuario',
-        vm_spec_name: (order.vm_specs as any)?.name || 'Sin especificar'
-      }));
-
-      setOrders(ordersBasic);
-
     } catch (error) {
       console.error('Error fetching basic data:', error);
     }
@@ -189,8 +143,6 @@ export function AdminPanel() {
           .eq('id', vmId);
         
         if (error) throw error;
-      } else {
-        console.log(`${action}ing VM ${vmId}`);
       }
       
       await fetchAdminData();
@@ -203,19 +155,32 @@ export function AdminPanel() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      running: { variant: 'success' as const, text: 'Activo' },
-      stopped: { variant: 'secondary' as const, text: 'Detenido' },
-      creating: { variant: 'warning' as const, text: 'Creando' },
-      pending: { variant: 'warning' as const, text: 'Pendiente' },
-      error: { variant: 'destructive' as const, text: 'Error' },
-      completed: { variant: 'success' as const, text: 'Completado' },
-      processing: { variant: 'warning' as const, text: 'Procesando' },
-      failed: { variant: 'destructive' as const, text: 'Fallida' },
+    const variants = {
+      running: 'success',
+      stopped: 'secondary',
+      creating: 'warning',
+      pending: 'warning',
+      error: 'destructive',
+      completed: 'success',
+      processing: 'warning',
+      failed: 'destructive'
+    } as const;
+
+    const texts = {
+      running: 'Activo',
+      stopped: 'Detenido', 
+      creating: 'Creando',
+      pending: 'Pendiente',
+      error: 'Error',
+      completed: 'Completado',
+      processing: 'Procesando',
+      failed: 'Fallida'
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || { variant: 'secondary' as const, text: status };
-    return <Badge variant={config.variant}>{config.text}</Badge>;
+    const variant = variants[status as keyof typeof variants] || 'secondary';
+    const text = texts[status as keyof typeof texts] || status;
+    
+    return <Badge variant={variant}>{text}</Badge>;
   };
 
   if (loading) {
@@ -473,69 +438,3 @@ export function AdminPanel() {
     </div>
   );
 }
-</parameter>
-</invoke>
-<invoke name="str_replace_editor">
-<parameter name="command">str_replace</parameter>
-<parameter name="path">docker-compose.yml</parameter>
-<parameter name="old_str">version: '3.8'
-
-services:
-  # Main React application
-  app:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-      args:
-        VITE_SUPABASE_URL: https://postgres.triexpertservice.com
-        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MVc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-    container_name: vps-platform-app
-    ports:
-      - "3000:80"
-    environment:
-      - NODE_ENV=production
-      - VITE_SUPABASE_URL=https://postgres.triexpertservice.com
-      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MVc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-    restart: unless-stopped
-    networks:
-      - vps-network
-    depends_on:
-      - redis
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.vps-app.rule=Host(`localhost`)"
-      - "traefik.http.services.vps-app.loadbalancer.server.port=80"</parameter>
-<parameter name="new_str">version: '3.8'
-
-services:
-  # Main React application
-  app:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-      args:
-        VITE_SUPABASE_URL: https://postgres.triexpertservice.com
-        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MVc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-    container_name: vps-platform-app
-    ports:
-      - "3000:80"
-    restart: unless-stopped
-    networks:
-      - vps-network
-    depends_on:
-      - redis
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.vps-app.rule=Host(`localhost`)"
-      - "traefik.http.services.vps-app.loadbalancer.server.port=80"</parameter>
-</invoke>
-<invoke name="str_replace_editor">
-<parameter name="command">create</parameter>
-<parameter name="path">rebuild.sh</parameter>
-<parameter name="file_text">#!/bin/bash
-echo "🔄 Rebuilding VPS Platform with clean configuration..."
-docker-compose down --remove-orphans
-docker-compose build --no-cache
-echo "✅ Build completed successfully!"
-</parameter>
-</invoke>
