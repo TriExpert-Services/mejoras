@@ -89,71 +89,93 @@ export function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [proxmoxLoading, setProxmoxLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
-    fetchAdminData();
-    fetchProxmoxStats();
+    // Initial load only
+    initialFetchData();
     
-    // Auto-refresh stats every 10 seconds
+    // Auto-refresh every 10 seconds (silent updates)
     const interval = setInterval(() => {
-      fetchAdminData();
-      fetchProxmoxStats();
+      silentFetchData();
     }, 10000);
     
     return () => clearInterval(interval);
   }, []);
 
-  const fetchAdminData = async () => {
-    // Only set loading to true on very first load
-    if (!initialLoadComplete) {
-      setLoading(true);
-    }
+  // Initial fetch that shows loading screen
+  const initialFetchData = async () => {
+    setLoading(true);
     setError(null);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No hay sesión activa');
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        throw new Error(errorData.error || `Error ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      setStats(data.stats);
-      setVms(data.vms || []);
-      setOrders(data.orders || []);
-
+      await Promise.all([
+        fetchAdminStats(),
+        fetchProxmoxStats()
+      ]);
     } catch (error: any) {
-      console.error('Error fetching admin data:', error);
+      console.error('Initial fetch error:', error);
       setError(error.message);
-      
-      // Set fallback data
-      setStats({
-        totalUsers: 0,
-        totalVMs: 0,
-        totalRevenue: 0,
-        activeVMs: 0
-      });
-      setVms([]);
-      setOrders([]);
     } finally {
       setLoading(false);
-      setInitialLoadComplete(true);
     }
+  };
+
+  // Silent fetch that doesn't show loading (for auto-refresh)
+  const silentFetchData = async () => {
+    try {
+      await Promise.all([
+        fetchAdminStats(),
+        fetchProxmoxStats()
+      ]);
+      setError(null);
+    } catch (error: any) {
+      console.error('Silent fetch error:', error);
+      // Don't set error on silent updates to avoid disrupting UI
+    }
+  };
+
+  // Manual refresh triggered by button
+  const manualRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchAdminStats(),
+        fetchProxmoxStats()
+      ]);
+      setError(null);
+    } catch (error: any) {
+      console.error('Manual refresh error:', error);
+      setError(error.message);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const fetchAdminStats = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('No hay sesión activa');
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+      throw new Error(errorData.error || `Error ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    setStats(data.stats);
+    setVms(data.vms || []);
+    setOrders(data.orders || []);
   };
 
   const fetchProxmoxStats = async () => {
@@ -251,7 +273,7 @@ export function AdminPanel() {
         throw new Error(errorData.error || `Error al ${action === 'start' ? 'iniciar' : action === 'stop' ? 'detener' : 'eliminar'} el VM`);
       }
 
-      await fetchAdminData();
+      await fetchAdminStats();
       
     } catch (error: any) {
       console.error(`Error ${action}ing VM:`, error);
@@ -317,7 +339,7 @@ export function AdminPanel() {
       }
 
       alert('VM creado exitosamente! Revisa la lista de VPS.');
-      await fetchAdminData();
+      await fetchAdminStats();
       
     } catch (error: any) {
       console.error('Error creating VM:', error);
@@ -659,8 +681,7 @@ export function AdminPanel() {
               </CardTitle>
               <Button
                 onClick={() => {
-                  setRefreshing(true);
-                  fetchAdminData().finally(() => setRefreshing(false));
+                  manualRefresh();
                 }}
                 disabled={refreshing}
                 variant="outline"
@@ -795,8 +816,7 @@ export function AdminPanel() {
             <Button
               variant="outline"
               onClick={() => {
-                setRefreshing(true);
-                Promise.all([fetchAdminData(), fetchProxmoxStats()]).finally(() => setRefreshing(false));
+                manualRefresh();
               }}
               disabled={refreshing}
               className="flex items-center justify-center"
