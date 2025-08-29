@@ -26,9 +26,6 @@ Deno.serve(async (req) => {
     }
 
     const { orderId, action } = await req.json();
-    
-    // Extract additional parameters for provision action
-    const { templateId, vmName: customVmName } = await req.json();
 
     if (!orderId) {
       return new Response(
@@ -41,7 +38,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'provision':
-        result = await provisionVM(orderId, templateId, customVmName);
+        result = await provisionVM(orderId);
         break;
       case 'start':
         result = await controlVM(orderId, 'start');
@@ -73,16 +70,8 @@ Deno.serve(async (req) => {
   }
 });
 
-async function provisionVM(orderId: string, templateId?: number, customVmName?: string) {
+async function provisionVM(orderId: string) {
   console.log(`Starting VM provisioning for order: ${orderId}`);
-  
-  if (templateId) {
-    console.log(`Using custom template ID: ${templateId}`);
-  }
-  
-  if (customVmName) {
-    console.log(`Using custom VM name: ${customVmName}`);
-  }
 
   // Get order details
   const { data: order, error: orderError } = await supabase
@@ -112,7 +101,7 @@ async function provisionVM(orderId: string, templateId?: number, customVmName?: 
     // Generate unique VM ID
     const vmid = await generateVMID();
     const ipAddress = await generateUniqueIP();
-    const vmName = customVmName || `vm-${orderId.substring(0, 8)}`;
+    const vmName = `vm-${orderId.substring(0, 8)}`;
     const rootPassword = generatePassword();
 
     // First check what templates are available
@@ -157,8 +146,8 @@ async function provisionVM(orderId: string, templateId?: number, customVmName?: 
     }
 
     // Get template ID from environment or use default
-    const finalTemplateId = templateId || parseInt(Deno.env.get('PVE_TEMPLATE_ID') || '103');
-    console.log(`Using template ID: ${finalTemplateId}`);
+    const templateId = Deno.env.get('PVE_TEMPLATE_ID') || '103'; // Ubuntu 24.04
+    console.log(`Using template ID: ${templateId}`);
     
     // Call Proxmox API to create VM
     const proxmoxResult = await callProxmoxAPI('clone', undefined, {
@@ -167,7 +156,7 @@ async function provisionVM(orderId: string, templateId?: number, customVmName?: 
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
       disk: order.vm_specs.disk_gb,
-      template: finalTemplateId,
+      template: parseInt(templateId),
       node: 'pve',
       password: rootPassword,
       ipAddress,

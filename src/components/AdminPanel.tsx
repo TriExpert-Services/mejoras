@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Input } from './ui/input';
 import { supabase } from '../lib/supabase';
 import { products } from '../stripe-config';
 import { 
@@ -20,9 +19,7 @@ import {
   HardDrive,
   MemoryStick,
   Monitor,
-  AlertCircle,
-  Plus,
-  X
+  AlertCircle
 } from 'lucide-react';
 
 interface AdminStats {
@@ -55,19 +52,6 @@ interface ProxmoxStats {
     storage_details: any[];
   };
 }
-
-interface OSTemplate {
-  id: number;
-  name: string;
-  description: string;
-}
-
-const osTemplates: OSTemplate[] = [
-  { id: 103, name: 'Ubuntu 24.04', description: 'Ubuntu 24.04 LTS - Más estable' },
-  { id: 104, name: 'Ubuntu 25.04', description: 'Ubuntu 25.04 - Más reciente' },
-  { id: 105, name: 'Debian 12', description: 'Debian 12 Bookworm - Servidor estable' },
-  { id: 106, name: 'AlmaLinux 9', description: 'AlmaLinux 9 - Compatible RHEL' },
-];
 
 interface AdminVM {
   id: string;
@@ -104,10 +88,6 @@ export function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [proxmoxLoading, setProxmoxLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedOS, setSelectedOS] = useState<number>(103);
-  const [selectedProduct, setSelectedProduct] = useState<string>('vps-basic-1');
-  const [vmName, setVmName] = useState('');
 
   useEffect(() => {
     fetchAdminData();
@@ -273,7 +253,7 @@ export function AdminPanel() {
   };
   
   const handleCreateVM = async (productId: string) => {
-    const actionKey = `create-${productId}-${selectedOS}`;
+    const actionKey = productId;
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
     try {
@@ -281,7 +261,7 @@ export function AdminPanel() {
       if (!session) throw new Error('No hay sesión activa');
 
       // Find product in our config
-      const product = products.find(p => p.id === selectedProduct);
+      const product = products.find(p => p.id === productId);
       if (!product) throw new Error('Producto no encontrado');
       
       // Get VM spec UUID by name from database
@@ -292,9 +272,6 @@ export function AdminPanel() {
         .single();
 
       if (specError || !vmSpec) throw new Error('Especificación de VM no encontrada en la base de datos');
-
-      // Use custom name or generate one
-      const finalVmName = vmName.trim() || `vm-${Date.now()}`;
 
       // Create manual order with proper UUID
       const { data: order, error: orderError } = await supabase
@@ -322,8 +299,6 @@ export function AdminPanel() {
         body: JSON.stringify({
           orderId: order.id,
           action: 'provision',
-          templateId: selectedOS,
-          vmName: finalVmName,
         }),
       });
 
@@ -332,8 +307,6 @@ export function AdminPanel() {
         throw new Error(errorData.error || 'Error creando VM');
       }
 
-      setShowCreateModal(false);
-      setVmName('');
       alert('VM creado exitosamente! Revisa la lista de VPS.');
       await fetchAdminData();
       
@@ -637,13 +610,25 @@ export function AdminPanel() {
                 Crear un VPS directamente sin pasar por Stripe (para testing)
               </p>
               
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="w-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Crear Nuevo VPS
-              </Button>
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  onClick={() => handleCreateVM('vps-basic-1')}
+                  disabled={actionLoading['vps-basic-1']}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
+                  <span className="block text-xs">1 CPU • 2GB • 40GB</span>
+                </Button>
+                
+                <Button
+                  onClick={() => handleCreateVM('vps-premium-1')}
+                  disabled={actionLoading['vps-premium-1']}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {actionLoading['vps-premium-1'] ? 'Creando...' : 'VPS Premium'}
+                  <span className="block text-xs">4 CPU • 8GB • 160GB</span>
+                </Button>
+              </div>
               
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <p className="text-xs text-yellow-700">
@@ -868,185 +853,6 @@ export function AdminPanel() {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* VM Creation Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center">
-                  <Plus className="h-5 w-5 mr-2 text-green-600" />
-                  Crear Nuevo VPS
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* VM Name */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Nombre del VPS (opcional)
-                </label>
-                <Input
-                  placeholder="Ej: mi-servidor-web"
-                  value={vmName}
-                  onChange={(e) => setVmName(e.target.value)}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Si está vacío, se generará automáticamente
-                </p>
-              </div>
-
-              {/* OS Template Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-3">
-                  Sistema Operativo
-                </label>
-                <div className="grid grid-cols-1 gap-3">
-                  {osTemplates.map((template) => (
-                    <div
-                      key={template.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                        selectedOS === template.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedOS(template.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{template.name}</h4>
-                          <p className="text-sm text-gray-600">{template.description}</p>
-                        </div>
-                        <div className="flex items-center">
-                          <div className={`w-4 h-4 rounded-full border-2 ${
-                            selectedOS === template.id
-                              ? 'border-blue-500 bg-blue-500'
-                              : 'border-gray-300'
-                          }`}>
-                            {selectedOS === template.id && (
-                              <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              {/* VM Specifications */}
-              <div>
-                <label className="block text-sm font-medium mb-3">
-                  Especificaciones del VPS
-                </label>
-                <div className="grid grid-cols-1 gap-3">
-                  {products.map((product) => (
-                    <div
-                      key={product.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                        selectedProduct === product.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedProduct(product.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{product.name}</h4>
-                          <p className="text-sm text-gray-600 mb-2">{product.description}</p>
-                          {product.specs && (
-                            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                              <span>{product.specs.cpu}</span>
-                              <span>•</span>
-                              <span>{product.specs.ram}</span>
-                              <span>•</span>
-                              <span>{product.specs.disk}</span>
-                              <span>•</span>
-                              <span>{product.specs.bandwidth}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-right ml-4">
-                          <div className="font-medium text-blue-600">
-                            ${product.price}/mes
-                          </div>
-                          <div className={`w-4 h-4 rounded-full border-2 ${
-                            selectedProduct === product.id
-                              ? 'border-blue-500 bg-blue-500'
-                              : 'border-gray-300'
-                          }`}>
-                            {selectedProduct === product.id && (
-                              <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-                </div>
-              {/* Creation Summary */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium mb-2">Resumen de Creación</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Sistema Operativo:</span>
-                    <span className="font-medium">
-                      {osTemplates.find(t => t.id === selectedOS)?.name}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Plan:</span>
-                    <span className="font-medium">
-                      {products.find(p => p.id === selectedProduct)?.name}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Nombre:</span>
-                    <span className="font-medium">
-                      {vmName || 'Generado automáticamente'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              </div>
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={() => handleCreateVM(selectedProduct)}
-                  disabled={actionLoading[`create-${selectedProduct}-${selectedOS}`]}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  {actionLoading[`create-${selectedProduct}-${selectedOS}`] ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Creando...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Crear VPS
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       )}
     </div>
   );
