@@ -63,7 +63,10 @@ interface OSTemplate {
 }
 
 const osTemplates: OSTemplate[] = [
-  { id: 9000, name: 'Ubuntu 24.04', description: 'Ubuntu 24.04 LTS - Template principal' },
+  { id: 103, name: 'Ubuntu 24.04', description: 'Ubuntu 24.04 LTS - Más estable' },
+  { id: 104, name: 'Ubuntu 25.04', description: 'Ubuntu 25.04 - Más reciente' },
+  { id: 105, name: 'Debian 12', description: 'Debian 12 Bookworm - Servidor estable' },
+  { id: 106, name: 'AlmaLinux 9', description: 'AlmaLinux 9 - Compatible RHEL' },
 ];
 
 interface AdminVM {
@@ -110,22 +113,22 @@ export function AdminPanel() {
   useEffect(() => {
     fetchAdminData();
     fetchProxmoxStats();
-  }, []);
-
-  useEffect(() => {
-    // Auto-refresh only metrics every 10 seconds (after initial load)
+    
+    // Auto-refresh stats every 10 seconds
     const interval = setInterval(() => {
       fetchAdminData();
       fetchProxmoxStats();
     }, 10000);
     
     return () => clearInterval(interval);
-  }, [stats.totalVMs]); // Only start auto-refresh after initial data is loaded
+  }, []);
 
   const fetchAdminData = async () => {
-    // Only show refreshing indicator for subsequent updates, never initial loading after first load
-    if (!initialLoading) {
+    // Only show refreshing indicator for subsequent updates
+    if (stats.totalVMs > 0 || vms.length > 0) {
       setRefreshing(true);
+    } else {
+      setInitialLoading(true);
     }
     
     setError(null);
@@ -160,17 +163,15 @@ export function AdminPanel() {
       console.error('Error fetching admin data:', error);
       setError(error.message);
       
-      // Only set fallback data on initial load
-      if (initialLoading) {
-        setStats({
-          totalUsers: 0,
-          totalVMs: 0,
-          totalRevenue: 0,
-          activeVMs: 0
-        });
-        setVms([]);
-        setOrders([]);
-      }
+      // Set fallback data
+      setStats({
+        totalUsers: 0,
+        totalVMs: 0,
+        totalRevenue: 0,
+        activeVMs: 0
+      });
+      setVms([]);
+      setOrders([]);
     } finally {
       setInitialLoading(false);
       setRefreshing(false);
