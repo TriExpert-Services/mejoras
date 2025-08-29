@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Main React application
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: vps-platform-app
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env.local
+    restart: unless-stopped
+    networks:
+      - vps-network
+    depends_on:
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vps-app.rule=Host(`localhost`)"
+      - "traefik.http.services.vps-app.loadbalancer.server.port=80"
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: vps-platform-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    networks:
+      - vps-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: vps-platform-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx-proxy.conf:/etc/nginx/nginx.conf
+      - ./docker/ssl:/etc/nginx/ssl
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - vps-network
+
+networks:
+  vps-network:
+    driver: bridge
+    
+volumes:
+  redis_data:
+    driver: local
