@@ -73,11 +73,17 @@ Deno.serve(async (req) => {
         body = new URLSearchParams({
           newid: config.vmid.toString(),
           name: config.name,
-          node: config.node,
+          target: config.node,
           storage: Deno.env.get('PVE_DEFAULT_STORAGE') || 'local-lvm',
-          format: 'raw',
-          full: '1', // Full clone
+          format: 'qcow2',
+          full: '1',
         });
+        break;
+
+      case 'task-status':
+        console.log(`Checking task status: ${config.upid}...`);
+        endpoint = `/nodes/${config.node}/tasks/${config.upid}/status`;
+        method = 'GET';
         break;
 
       case 'start':
