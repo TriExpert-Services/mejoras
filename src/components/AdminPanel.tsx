@@ -89,6 +89,7 @@ export function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [proxmoxLoading, setProxmoxLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
     fetchAdminData();
@@ -104,8 +105,8 @@ export function AdminPanel() {
   }, []);
 
   const fetchAdminData = async () => {
-    // Only set loading to true on initial load, not on refresh
-    if (stats.totalUsers === 0 && stats.totalVMs === 0) {
+    // Only set loading to true on very first load
+    if (!initialLoadComplete) {
       setLoading(true);
     }
     setError(null);
@@ -151,6 +152,7 @@ export function AdminPanel() {
       setOrders([]);
     } finally {
       setLoading(false);
+      setInitialLoadComplete(true);
     }
   };
 
