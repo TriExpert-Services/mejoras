@@ -48,7 +48,7 @@ model Plan {
   cpu            Int
   ramMb          Int
   diskGb         Int
-  priceUsd       Decimal
+  priceUsd       Decimal     @db.Decimal(10,2)
   allowSnapshots Boolean     @default(false)
   isActive       Boolean     @default(true)
   createdAt      DateTime    @default(now())
@@ -66,7 +66,7 @@ model Order {
   status            OrderStatus @default(PENDING)
   stripeSessionId   String?
   stripePaymentId   String?
-  amountUsd         Decimal
+  amountUsd         Decimal     @db.Decimal(10,2)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   user              User        @relation(fields: [userId], references: [id])
