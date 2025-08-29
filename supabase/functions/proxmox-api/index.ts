@@ -61,6 +61,12 @@ Deno.serve(async (req) => {
     let result;
 
     switch (action) {
+      case 'list-templates':
+        console.log('Listing all VM templates...');
+        endpoint = `/nodes/${config?.node || defaultNode}/qemu`;
+        method = 'GET';
+        break;
+        
       case 'create':
         result = await createVM(proxmoxConfig, config);
         break;
@@ -100,6 +106,8 @@ Deno.serve(async (req) => {
   }
 });
 
+  
+  console.log(`Proxmox API call: action=${action}, vmId=${vmId}`, config ? 'with config' : 'no config');
 async function makeProxmoxRequest(config: ProxmoxConfig, endpoint: string, method = 'GET', body?: string) {
   const url = `https://${config.host}:${config.port}/api2/json${endpoint}`;
   

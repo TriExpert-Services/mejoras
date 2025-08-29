@@ -103,6 +103,24 @@ async function provisionVM(orderId: string) {
     const vmName = `vm-${orderId.substring(0, 8)}`;
     const rootPassword = generatePassword();
 
+    // First check what templates are available
+    console.log('Checking available VM templates...');
+    try {
+      const templatesResult = await callProxmoxAPI('list-templates', undefined, undefined);
+      console.log('Available templates:', templatesResult);
+    } catch (templateError) {
+      console.warn('Could not list available templates:', templateError);
+    }
+
+    // First, check available templates
+    console.log('Checking available VM templates...');
+    try {
+      const templatesResult = await callProxmoxAPI('list-templates', undefined, undefined);
+      console.log('Available templates:', templatesResult);
+    } catch (templateError) {
+      console.warn('Could not list templates:', templateError);
+    }
+
     // Create VM record
     const { data: vm, error: vmError } = await supabase
       .from('vms')
@@ -126,6 +144,10 @@ async function provisionVM(orderId: string) {
       throw new Error(`Failed to create VM record: ${vmError?.message}`);
     }
 
+    // Get template ID from environment or use default
+    const templateId = Deno.env.get('PVE_TEMPLATE_ID') || '9000';
+    console.log(`Using template ID: ${templateId}`);
+    
     // Call Proxmox API to create VM
     const proxmoxResult = await callProxmoxAPI('create', undefined, {
       vmid,
@@ -133,12 +155,16 @@ async function provisionVM(orderId: string) {
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
       disk: order.vm_specs.disk_gb,
-      template: Deno.env.get('PROXMOX_TEMPLATE_ID') || '9000',
+      template: templateId,
       node: 'pve',
       password: rootPassword,
     });
 
     if (!proxmoxResult.success) {
+      // If template not found, provide helpful error
+      if (proxmoxResult.error && proxmoxResult.error.includes('unable to find configuration file')) {
+        throw new Error(`Template VM ${templateId} not found. Please check available templates in Proxmox and update PVE_TEMPLATE_ID environment variable.`);
+      }
       throw new Error(`Proxmox VM creation failed: ${proxmoxResult.error}`);
     }
 

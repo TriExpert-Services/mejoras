@@ -64,18 +64,45 @@ make status       # Check health of all services
 
 ### Required Environment Variables
 
-Copy `.env.example` to `.env.local` and configure:
+⚠️ **IMPORTANTE**: Las Edge Functions de Supabase necesitan variables configuradas en **Supabase Dashboard**
 
-- **Supabase**: Get these from your Supabase project dashboard
-- **Stripe**: Configure in Supabase Edge Functions environment variables
-- **Proxmox**: Configure in Supabase Edge Functions environment variables
+### 1. Variables Frontend (.env.local)
+```bash
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_ANON_KEY=tu_clave_anonima
+```
+
+### 2. Variables Edge Functions (Supabase Dashboard)
+
+Ve a: **Supabase Dashboard → Settings → Edge Functions → Environment Variables**
+
+```bash
+# Proxmox Server - REAL CONNECTION
+PVE_API_URL=https://pve.triexpertservice.com:8006/api2/json
+PVE_TOKEN_ID=root@pam!server  
+PVE_TOKEN_SECRET=uae617333-2efc-4174-bd29-bd8455f8e934
+PVE_DEFAULT_NODE=pve
+PVE_TLS_INSECURE=true
+PVE_TEMPLATE_ID=CAMBIAR_POR_ID_REAL
+
+# Stripe Payment Processing
+STRIPE_SECRET_KEY=sk_test_tu_clave_stripe_real
+STRIPE_WEBHOOK_SECRET=whsec_tu_webhook_secret
+```
 
 ### Proxmox Configuration
 
-1. Create API user and token in Proxmox VE
-2. Ensure token has sufficient permissions for VM operations
-3. Configure a cloud-init template VM for cloning
-4. Set up networking (DHCP or static IP pool)
+1. **API Token**: Ya configurado `root@pam!server`
+2. **Permisos**: Token tiene acceso completo al servidor
+3. **Template VM**: ID 9000 configurado para cloning
+4. **Network**: vmbr0 con VLAN 200 configurada
+5. **Storage**: local-lvm para VMs
+
+⚠️ **CRÍTICO**: Si el error 401 persiste, verificar:
+- ✅ Servidor Proxmox accesible desde internet
+- ✅ Token API válido y no expirado
+- ✅ Firewall permite conexiones en puerto 8006
+- ✅ Variables configuradas en Supabase (no en Docker)
 
 ## Platform Features
 
