@@ -153,30 +153,65 @@ async function getProxmoxStats(config: any) {
     
     console.log('VM list received:', vmList);
 
-    // Count VMs
-    const runningVMs = vmList ? vmList.filter((vm: any) => vm.status === 'running').length : 0;
-    const totalVMs = vmList ? vmList.length : 0;
+    // Count VMs with detailed status
+    let runningVMs = 0;
+    let totalVMs = 0;
+    
+    if (vmList && Array.isArray(vmList)) {
+      totalVMs = vmList.length;
+      runningVMs = vmList.filter((vm: any) => vm.status === 'running').length;
+      
+      console.log(`VM Status breakdown:`, vmList.map((vm: any) => ({
+        vmid: vm.vmid,
+        name: vm.name,
+        status: vm.status
+      })));
+    }
+    
+    console.log(`VM counts: ${runningVMs}/${totalVMs} running`);
 
-    // Get storage info
-    let storageData = null;
-    let storageUsed = 0;
-    let storageTotal = 100;
+    // Get ALL storage info
+    let allStorageData = null;
+    let totalStorageUsed = 0;
+    let totalStorageTotal = 0;
+    const storageDetails = [];
     
     try {
-      console.log('Getting storage data...');
-      storageData = await makeProxmoxRequest(config, `/nodes/${config.node}/storage`);
-      console.log('Storage data:', storageData);
+      console.log('Getting all storage data...');
+      allStorageData = await makeProxmoxRequest(config, `/nodes/${config.node}/storage`);
+      console.log('All storage data:', allStorageData);
       
-      const localStorage = storageData?.find((s: any) => 
-        s.storage === 'local-lvm' || s.storage === 'local' || s.enabled
-      );
-      
-      if (localStorage && localStorage.used && localStorage.total) {
-        storageUsed = localStorage.used / (1024 * 1024 * 1024); // Convert to GB
-        storageTotal = localStorage.total / (1024 * 1024 * 1024);
+      if (allStorageData && Array.isArray(allStorageData)) {
+        // Process each storage
+        allStorageData.forEach((storage: any) => {
+          if (storage.enabled && storage.used !== undefined && storage.total !== undefined) {
+            const usedGB = storage.used / (1024 * 1024 * 1024);
+            const totalGB = storage.total / (1024 * 1024 * 1024);
+            
+            totalStorageUsed += usedGB;
+            totalStorageTotal += totalGB;
+            
+            storageDetails.push({
+              name: storage.storage,
+              type: storage.type,
+              used_gb: usedGB,
+              total_gb: totalGB,
+              usage_percent: totalGB > 0 ? (usedGB / totalGB) * 100 : 0,
+              enabled: storage.enabled,
+              content: storage.content
+            });
+          }
+        });
       }
+      
+      console.log(`Total storage: ${totalStorageUsed.toFixed(1)}GB / ${totalStorageTotal.toFixed(1)}GB`);
+      console.log('Storage details:', storageDetails);
+      
     } catch (storageError) {
       console.warn('Could not get storage data:', storageError);
+      // Set minimal defaults if storage info fails
+      totalStorageUsed = 0;
+      totalStorageTotal = 1000; // 1TB default
     }
 
     // Return real server metrics
@@ -196,9 +231,9 @@ async function getProxmoxStats(config: any) {
       memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 : 0,
       
       // Storage in GB
-      disk_used: storageUsed,
-      disk_total: storageTotal,
-      disk_usage_percent: storageTotal > 0 ? (storageUsed / storageTotal) * 100 : 0,
+      disk_used: totalStorageUsed,
+      disk_total: totalStorageTotal,
+      disk_usage_percent: totalStorageTotal > 0 ? (totalStorageUsed / totalStorageTotal) * 100 : 0,
       
       // VM counts
       active_vms: runningVMs,
@@ -212,7 +247,10 @@ async function getProxmoxStats(config: any) {
       debug: {
         node_data_keys: nodeData ? Object.keys(nodeData) : [],
         vm_count: totalVMs,
-        storage_available: !!storageData
+        running_vms: runningVMs,
+        storage_available: !!allStorageData,
+        storage_count: storageDetails.length,
+        storage_details: storageDetails
       }
     };
 
