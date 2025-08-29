@@ -63,10 +63,7 @@ interface OSTemplate {
 }
 
 const osTemplates: OSTemplate[] = [
-  { id: 103, name: 'Ubuntu 24.04', description: 'Ubuntu 24.04 LTS - Más estable' },
-  { id: 104, name: 'Ubuntu 25.04', description: 'Ubuntu 25.04 - Más reciente' },
-  { id: 105, name: 'Debian 12', description: 'Debian 12 Bookworm - Servidor estable' },
-  { id: 106, name: 'AlmaLinux 9', description: 'AlmaLinux 9 - Compatible RHEL' },
+  { id: 9000, name: 'Ubuntu 24.04', description: 'Ubuntu 24.04 LTS - Template principal' },
 ];
 
 interface AdminVM {
