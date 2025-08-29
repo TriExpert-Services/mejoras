@@ -12,14 +12,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-interface ProxmoxConfig {
-  host: string;
-  tokenId: string;
-  tokenSecret: string;
-  port: number;
-  node: string;
-}
-
 Deno.serve(async (req) => {
   try {
     if (req.method === 'OPTIONS') {
@@ -52,16 +44,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build Proxmox config from environment
-    const proxmoxConfig: ProxmoxConfig = {
-      host: Deno.env.get('PVE_API_URL')?.replace('https://', '').replace(':8006/api2/json', '') || 'pve.triexpertservice.com',
-      tokenId: Deno.env.get('PVE_TOKEN_ID') || 'root@pam!server',
-      tokenSecret: Deno.env.get('PVE_TOKEN_SECRET') || '',
+    // DEBUG: Log environment variables
+    console.log('=== PROXMOX DEBUG INFO ===');
+    console.log('PVE_API_URL:', Deno.env.get('PVE_API_URL'));
+    console.log('PVE_TOKEN_ID:', Deno.env.get('PVE_TOKEN_ID'));
+    console.log('PVE_TOKEN_SECRET exists:', !!Deno.env.get('PVE_TOKEN_SECRET'));
+    console.log('PVE_DEFAULT_NODE:', Deno.env.get('PVE_DEFAULT_NODE'));
+    
+    // Build Proxmox config - Using the exact values from Docker
+    const pveApiUrl = Deno.env.get('PVE_API_URL') || 'https://pve.triexpertservice.com:8006/api2/json';
+    const pveTokenId = Deno.env.get('PVE_TOKEN_ID') || 'root@pam!server';
+    const pveTokenSecret = Deno.env.get('PVE_TOKEN_SECRET') || 'uae617333-2efc-4174-bd29-bd8455f8e934';
+    const pveNode = Deno.env.get('PVE_DEFAULT_NODE') || 'pve';
+
+    // Extract just the host from the API URL
+    const host = pveApiUrl.replace('https://', '').replace(':8006/api2/json', '');
+    
+    const proxmoxConfig = {
+      host,
+      tokenId: pveTokenId,
+      tokenSecret: pveTokenSecret,
       port: 8006,
-      node: Deno.env.get('PVE_DEFAULT_NODE') || 'pve',
+      node: pveNode,
     };
 
-    console.log('Connecting to Proxmox:', {
+    console.log('Final Proxmox config:', {
       host: proxmoxConfig.host,
       tokenId: proxmoxConfig.tokenId,
       node: proxmoxConfig.node,
@@ -79,16 +86,19 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error('Proxmox stats error:', error);
     
-    // Return error with details for debugging
+    // Return detailed error for debugging
     return new Response(
       JSON.stringify({ 
         error: error.message,
         connected: false,
         debug_info: {
+          error_type: error.constructor.name,
+          error_details: error.toString(),
           has_pve_url: !!Deno.env.get('PVE_API_URL'),
           has_token_id: !!Deno.env.get('PVE_TOKEN_ID'),
           has_token_secret: !!Deno.env.get('PVE_TOKEN_SECRET'),
-          pve_host: Deno.env.get('PVE_API_URL')?.replace('https://', '').replace(':8006/api2/json', ''),
+          pve_host: Deno.env.get('PVE_API_URL'),
+          timestamp: new Date().toISOString(),
         }
       }),
       { 
@@ -99,85 +109,91 @@ Deno.serve(async (req) => {
   }
 });
 
-async function makeProxmoxRequest(config: ProxmoxConfig, endpoint: string) {
-  const url = `https://${config.host}:${config.port}/api2/json${endpoint}`;
-  
-  const headers = {
-    'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
-    'Content-Type': 'application/json',
-  };
-
-  console.log(`Making Proxmox request to: ${url}`);
-  console.log(`Using token: ${config.tokenId}=[SECRET]`);
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Proxmox API error: ${response.status} - ${errorText}`);
-    throw new Error(`Proxmox API error ${response.status}: ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log(`Proxmox API response for ${endpoint}:`, data);
-  return data.data;
-}
-
-async function getProxmoxStats(config: ProxmoxConfig) {
+async function getProxmoxStats(config: any) {
   try {
-    console.log('Getting node status from Proxmox...');
+    console.log('=== CONNECTING TO PROXMOX ===');
+    console.log('Host:', config.host);
+    console.log('Node:', config.node);
+    console.log('Token ID:', config.tokenId);
     
-    // Get node status - REAL DATA
+    // Test connection first
+    const testUrl = `https://${config.host}:${config.port}/api2/json/version`;
+    
+    console.log('Testing connection to:', testUrl);
+    
+    const testResponse = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('Test response status:', testResponse.status);
+    
+    if (!testResponse.ok) {
+      const errorText = await testResponse.text();
+      console.error('Test connection failed:', errorText);
+      
+      throw new Error(`Proxmox connection test failed [${testResponse.status}]: ${errorText}`);
+    }
+
+    const versionData = await testResponse.json();
+    console.log('Proxmox version data:', versionData);
+
+    // Get node status
+    console.log('Getting node status...');
     const nodeData = await makeProxmoxRequest(config, `/nodes/${config.node}/status`);
     
-    console.log('Real node data received:', nodeData);
+    console.log('Node data received:', nodeData);
 
-    // Get VM list - REAL DATA  
+    // Get VM list 
+    console.log('Getting VM list...');
     const vmList = await makeProxmoxRequest(config, `/nodes/${config.node}/qemu`);
     
-    console.log('Real VM list:', vmList);
+    console.log('VM list received:', vmList);
 
-    // Count running VMs
-    const runningVMs = vmList.filter((vm: any) => vm.status === 'running').length;
-    const totalVMs = vmList.length;
+    // Count VMs
+    const runningVMs = vmList ? vmList.filter((vm: any) => vm.status === 'running').length : 0;
+    const totalVMs = vmList ? vmList.length : 0;
 
-    // Get storage info - REAL DATA
+    // Get storage info
+    let storageData = null;
     let storageUsed = 0;
-    let storageTotal = 0;
+    let storageTotal = 100;
     
     try {
-      const storageData = await makeProxmoxRequest(config, `/nodes/${config.node}/storage`);
-      const localStorage = storageData.find((s: any) => s.storage === 'local-lvm' || s.storage === 'local');
+      console.log('Getting storage data...');
+      storageData = await makeProxmoxRequest(config, `/nodes/${config.node}/storage`);
+      console.log('Storage data:', storageData);
+      
+      const localStorage = storageData?.find((s: any) => 
+        s.storage === 'local-lvm' || s.storage === 'local' || s.enabled
+      );
       
       if (localStorage && localStorage.used && localStorage.total) {
         storageUsed = localStorage.used / (1024 * 1024 * 1024); // Convert to GB
-        storageTotal = localStorage.total / (1024 * 1024 * 1024); // Convert to GB
+        storageTotal = localStorage.total / (1024 * 1024 * 1024);
       }
     } catch (storageError) {
       console.warn('Could not get storage data:', storageError);
-      // Use fallback values if storage data not available
-      storageUsed = 0;
-      storageTotal = 100;
     }
 
     // Return real server metrics
-    return {
+    const result = {
       status: 'online',
       connected: true,
       timestamp: new Date().toISOString(),
       
-      // Real server metrics
-      uptime: nodeData.uptime || 0,
-      cpu_usage: (nodeData.cpu || 0) * 100,
-      cpu_cores: nodeData.cpuinfo?.cpus || nodeData.cpuinfo?.cores || 8,
+      // Server metrics
+      uptime: nodeData?.uptime || 0,
+      cpu_usage: (nodeData?.cpu || 0) * 100,
+      cpu_cores: nodeData?.cpuinfo?.cpus || 8,
       
       // Memory in GB  
-      memory_used: (nodeData.memory?.used || 0) / (1024 * 1024 * 1024),
-      memory_total: (nodeData.memory?.total || 0) / (1024 * 1024 * 1024),
-      memory_usage_percent: nodeData.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 : 0,
+      memory_used: nodeData?.memory ? (nodeData.memory.used / (1024 * 1024 * 1024)) : 0,
+      memory_total: nodeData?.memory ? (nodeData.memory.total / (1024 * 1024 * 1024)) : 32,
+      memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 : 0,
       
       // Storage in GB
       disk_used: storageUsed,
@@ -189,19 +205,61 @@ async function getProxmoxStats(config: ProxmoxConfig) {
       total_vms: totalVMs,
       
       // Node info
-      node_name: nodeData.name || config.node,
-      pve_version: nodeData.pveversion || 'Unknown',
-      kernel_version: nodeData.kversion || 'Unknown',
+      node_name: nodeData?.name || config.node,
+      pve_version: versionData?.data?.version || 'Unknown',
       
-      // Load averages
-      loadavg: nodeData.loadavg || [0, 0, 0],
-      
-      // Raw data for debugging
-      raw_node_data: nodeData,
+      // Debug info
+      debug: {
+        node_data_keys: nodeData ? Object.keys(nodeData) : [],
+        vm_count: totalVMs,
+        storage_available: !!storageData
+      }
     };
 
+    console.log('=== FINAL RESULT ===');
+    console.log('Connected successfully:', result.connected);
+    console.log('CPU usage:', result.cpu_usage);
+    console.log('Memory usage:', result.memory_usage_percent);
+    
+    return result;
+
   } catch (error: any) {
-    console.error('Failed to get real Proxmox stats:', error);
+    console.error('=== PROXMOX CONNECTION ERROR ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Stack:', error.stack);
+    
     throw new Error(`No se pudo conectar al servidor Proxmox: ${error.message}`);
   }
+}
+
+async function makeProxmoxRequest(config: any, endpoint: string, method = 'GET', body?: string) {
+  const url = `https://${config.host}:${config.port}/api2/json${endpoint}`;
+  
+  const headers: Record<string, string> = {
+    'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
+    'Content-Type': 'application/json',
+  };
+
+  console.log(`Making ${method} request to: ${url}`);
+  console.log('Using auth header:', `PVEAPIToken=${config.tokenId}=[SECRET]`);
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body,
+  });
+
+  console.log('Response status:', response.status);
+  console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`API error ${response.status}:`, errorText);
+    throw new Error(`Proxmox API error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('Response data structure:', typeof data, Object.keys(data || {}));
+  return data.data;
 }
