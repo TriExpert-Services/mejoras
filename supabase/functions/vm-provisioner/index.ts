@@ -25,10 +25,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { orderId, action } = await req.json();
-    
-    // Extract additional parameters for provision action
-    const { templateId, vmName: customVmName } = await req.json();
+    const { orderId, action, templateId, vmName: customVmName } = await req.json();
 
     if (!orderId) {
       return new Response(
