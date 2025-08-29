@@ -46,8 +46,7 @@ interface VMMetricsProps {
 
 export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   const [metrics, setMetrics] = useState<VMMetrics[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,11 +59,6 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
 
   const fetchMetrics = async () => {
     try {
-      // Only show refreshing indicator for subsequent updates
-      if (metrics.length > 0) {
-        setRefreshing(true);
-      }
-      
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -96,8 +90,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
       console.error('Error fetching VM metrics:', error);
       setError(error.message);
     } finally {
-      setInitialLoading(false);
-      setRefreshing(false);
+      setLoading(false);
     }
   };
 
@@ -131,7 +124,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
     return <Badge variant="secondary">Detenido</Badge>;
   };
 
-  if (initialLoading) {
+  if (loading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -185,7 +178,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
               </div>
               <div className="flex items-center gap-3">
                 {getStatusBadge(metric.status, metric.running)}
-                {refreshing && (
+                {loading && (
                   <div className="flex items-center text-xs text-blue-600">
                     <RefreshCw className="h-3 w-3 animate-spin mr-1" />
                     Actualizando...

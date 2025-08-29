@@ -49,8 +49,7 @@ interface Order {
 export function VMDashboard() {
   const [vms, setVms] = useState<VM[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
@@ -82,11 +81,6 @@ export function VMDashboard() {
 
   const fetchUserData = async () => {
     try {
-      // Only show refreshing indicator for subsequent updates
-      if (vms.length > 0 || orders.length > 0) {
-        setRefreshing(true);
-      }
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -127,8 +121,7 @@ export function VMDashboard() {
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
-      setInitialLoading(false);
-      setRefreshing(false);
+      setLoading(false);
     }
   };
 
@@ -202,7 +195,7 @@ export function VMDashboard() {
     );
   };
 
-  if (initialLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
@@ -242,12 +235,6 @@ export function VMDashboard() {
                       <p className="text-xs text-gray-500">
                         Actualización automática cada 15s
                       </p>
-                      {refreshing && (
-                        <div className="flex items-center text-xs text-blue-600 mt-2">
-                          <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                          Actualizando datos...
-                        </div>
-                      )}
                     </div>
                     {getStatusBadge(vm.status)}
                   </div>
@@ -362,9 +349,9 @@ export function VMDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={fetchUserData}
-                        disabled={actionLoading[vm.id] || refreshing}
+                        disabled={actionLoading[vm.id]}
                       >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                        <RefreshCw className="h-4 w-4 mr-2" />
                         Actualizar
                       </Button>
                     </div>
