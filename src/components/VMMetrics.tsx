@@ -32,6 +32,10 @@ interface VMMetrics {
   network_out_mb: number;
   uptime: number;
   last_updated: string;
+  cpu_cores: number;
+  ram_gb: number;
+  disk_gb: number;
+  ip_address: string;
   error?: string;
 }
 

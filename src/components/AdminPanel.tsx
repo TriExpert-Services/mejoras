@@ -207,21 +207,10 @@ export function AdminPanel() {
           node_name: 'pve-node-01'
         });
       }
-
-    } catch (error) {
-      console.error('Error fetching Proxmox stats:', error);
-      // Set fallback demo data
-      setProxmoxStats({
-        status: 'offline',
-        uptime: 0,
-        cpu_usage: 0,
-        memory_used: 0,
-        memory_total: 32,
-        disk_used: 0,
-        disk_total: 1000,
-        active_vms: 0,
-        node_name: 'pve-node-01'
-      });
+    } catch (error: any) {
+      console.error('Error connecting to Proxmox:', error);
+      setProxmoxStats(null);
+      setError(`No se pudo conectar a Proxmox: ${error.message}`);
     } finally {
       setProxmoxLoading(false);
     }
