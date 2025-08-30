@@ -14,7 +14,8 @@ import {
   Eye,
   Ban,
   UserCheck,
-  RefreshCw
+  RefreshCw,
+  X
 } from 'lucide-react';
 
 interface UserData {
