@@ -32,25 +32,6 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
       return;
     }
 
-    // Wait for noVNC library to load with better error handling
-    let attempts = 0;
-    const maxAttempts = 100; // 10 seconds max wait
-    
-    while (!window.RFB && !window.noVNCLoadError && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-    
-    if (window.noVNCLoadError) {
-      setError('noVNC library failed to load from all CDN sources. Please check your internet connection and try refreshing the page.');
-      return;
-    }
-    
-    if (!window.RFB) {
-      setError('noVNC library took too long to load. Please refresh the page and try again.');
-      return;
-    }
-
     setIsConnecting(true);
     setError(null);
 
@@ -97,7 +78,7 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
       }
 
       // Initialize noVNC RFB client
-      const rfbConnection = new window.RFB(vncRef.current, wsUrl, {
+      const rfbConnection = new RFB(vncRef.current, wsUrl, {
         credentials: { password: '' }, // Empty password for ticket auth
       });
 
