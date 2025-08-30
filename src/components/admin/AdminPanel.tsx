@@ -41,7 +41,7 @@
                                 title="VM suspendido por falta de pago"
                                 className="text-red-500"
                               >
-                                <AlertTriangle className="h-3 w-3" />
+                                <MonitorIcon className="h-3 w-3" />
                               </Button>
                             )}
                              <Button

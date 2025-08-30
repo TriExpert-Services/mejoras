@@ -685,6 +685,15 @@ export function VMDashboard() {
           {renderContent()}
         </div>
       </div>
+      
+      {/* VNC Viewer Modal */}
+      {vncViewer && (
+        <VNCViewer
+          vmId={vncViewer.vmId}
+          vmName={vncViewer.vmName}
+          onClose={() => setVncViewer(null)}
+        />
+      )}
     </div>
   );
 }
