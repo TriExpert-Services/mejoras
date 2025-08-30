@@ -30,8 +30,15 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
       return;
     }
 
+    // Wait for noVNC library to load
+    let attempts = 0;
+    while (!window.RFB && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
     if (!window.RFB) {
-      setError('noVNC library not loaded. Please refresh the page.');
+      setError('noVNC library failed to load. Please refresh the page and try again.');
       return;
     }
 
