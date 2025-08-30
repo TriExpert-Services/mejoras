@@ -366,3 +366,5 @@ export function PriceManagement() {
     </div>
   );
 }
+
+export { PriceManagement }
