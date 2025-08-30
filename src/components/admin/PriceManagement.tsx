@@ -339,16 +339,16 @@ export function PriceManagement() {
       </div>
 
       {/* Sync Warning */}
-      <Card className="border-yellow-200 bg-yellow-50">
+      <Card className="border-green-200 bg-green-50">
         <CardContent className="p-4">
           <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-yellow-600 mr-2 mt-0.5" />
-            <div className="text-sm text-yellow-700">
-              <p className="font-medium mb-1">Importante: Sincronización Manual</p>
+            <CheckCircle className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
+            <div className="text-sm text-green-700">
+              <p className="font-medium mb-1">✅ Sincronización Automática</p>
               <p>
-                Después de cambiar precios aquí, también debes actualizar el archivo 
-                <code className="bg-yellow-100 px-1 rounded mx-1">src/stripe-config.ts</code> 
-                para que los precios se reflejen en el frontend.
+                Los precios se actualizan automáticamente en el frontend cuando los modificas aquí. 
+                Ya no necesitas editar manualmente 
+                <code className="bg-green-100 px-1 rounded mx-1">src/stripe-config.ts</code>.
               </p>
             </div>
           </div>

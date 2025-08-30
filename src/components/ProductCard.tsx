@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { TemplateSelector } from './TemplateSelector';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
-import { Product } from '../stripe-config';
+import { Product } from '../hooks/useProducts';
 import { templates } from '../template-config';
 import { supabase } from '../lib/supabase';
 import { Server, Cpu, HardDrive, Network } from 'lucide-react';
