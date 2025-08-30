@@ -95,19 +95,27 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
       });
 
       console.log('Response status:', response.status);
-      const responseText = await response.text();
-      console.log('Response text:', responseText);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = JSON.parse(responseText);
-        } catch {
-          errorData = { error: responseText };
+      
+      // Handle 404 VM not found specifically
+      if (response.status === 404) {
+        const errorData = await response.json();
+        if (errorData.error === 'VM not found') {
+          console.info('VM not found - component will be hidden');
+          setVmPermanentlyGone(true);
+          if (intervalId) {
+            clearInterval(intervalId);
+            setIntervalId(null);
+          }
+          return;
         }
-        throw new Error(errorData.error || `Error ${response.status}: ${responseText}`);
       }
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error ${response.status}`);
+      }
+      
+      const responseText = await response.text();
       let data;
       try {
         data = JSON.parse(responseText);
@@ -121,17 +129,6 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
       setError(null);
 
     } catch (error: any) {
-      // Handle VM not found error gracefully
-      if (error.message === 'VM not found') {
-        console.info('VM not found - component will be hidden');
-        setVmPermanentlyGone(true);
-        if (intervalId) {
-          clearInterval(intervalId);
-          setIntervalId(null);
-        }
-        return;
-      }
-      
       console.error('Error fetching VM metrics:', error);
       setError(error.message);
     } finally {
