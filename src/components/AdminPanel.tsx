@@ -3,6 +3,8 @@ import { AdminSidebar } from './admin/AdminSidebar';
 import { IPPoolManagement } from './admin/IPPoolManagement';
 import { TemplateManagement } from './admin/TemplateManagement';
 import { UserManagement } from './admin/UserManagement';
+import { PriceManagement } from './admin/PriceManagement';
+import { LegalManagement } from './admin/LegalManagement';
 import { TemplateSelector } from './TemplateSelector';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
