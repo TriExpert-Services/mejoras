@@ -22,7 +22,8 @@ import {
   Activity,
   Cpu,
   HardDrive,
-  MemoryStick
+  MemoryStick,
+  CreditCard
 } from 'lucide-react';
 
 interface VM {

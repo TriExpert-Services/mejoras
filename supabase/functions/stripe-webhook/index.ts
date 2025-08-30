@@ -212,6 +212,110 @@ async function handleEvent(event: Stripe.Event) {
   }
 }
 
+async function handlePaymentFailed(customerId: string, invoice: Stripe.Invoice) {
+  try {
+    console.log(`Payment failed for customer: ${customerId}`);
+    
+    // Update subscription status to past_due
+    const { error: subError } = await supabase
+      .from('stripe_subscriptions')
+      .update({ 
+        status: 'past_due',
+        updated_at: new Date().toISOString()
+      })
+      .eq('customer_id', customerId);
+
+    if (subError) {
+      console.error('Error updating subscription status:', subError);
+    }
+
+    // Trigger billing management
+    EdgeRuntime.waitUntil(triggerBillingManagement(customerId, 'payment_failed'));
+    
+  } catch (error: any) {
+    console.error('Error handling payment failed:', error);
+  }
+}
+
+async function handlePaymentSucceeded(customerId: string, invoice: Stripe.Invoice) {
+  try {
+    console.log(`Payment succeeded for customer: ${customerId}`);
+    
+    // Update subscription status to active
+    const { error: subError } = await supabase
+      .from('stripe_subscriptions')
+      .update({ 
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('customer_id', customerId);
+
+    if (subError) {
+      console.error('Error updating subscription status:', subError);
+    }
+
+    // Trigger billing management to reactivate VMs
+    EdgeRuntime.waitUntil(triggerBillingManagement(customerId, 'payment_succeeded'));
+    
+  } catch (error: any) {
+    console.error('Error handling payment succeeded:', error);
+  }
+}
+
+async function handleSubscriptionDeleted(customerId: string) {
+  try {
+    console.log(`Subscription deleted for customer: ${customerId}`);
+    
+    // Update subscription status to canceled
+    const { error: subError } = await supabase
+      .from('stripe_subscriptions')
+      .update({ 
+        status: 'canceled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('customer_id', customerId);
+
+    if (subError) {
+      console.error('Error updating subscription status:', subError);
+    }
+
+    // Trigger billing management for final cancellation
+    EdgeRuntime.waitUntil(triggerBillingManagement(customerId, 'subscription_canceled'));
+    
+  } catch (error: any) {
+    console.error('Error handling subscription deleted:', error);
+  }
+}
+
+async function triggerBillingManagement(customerId: string, action: string) {
+  try {
+    const billingUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/billing-manager`;
+    
+    const response = await fetch(billingUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        customerId,
+        action,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Billing management failed: ${error}`);
+    }
+
+    const result = await response.json();
+    console.log(`Billing management triggered for customer ${customerId}:`, result);
+
+  } catch (error: any) {
+    console.error(`Failed to trigger billing management for customer ${customerId}:`, error);
+  }
+}
+
 async function triggerVMProvisioning(orderId: string, templateId?: number) {
   try {
     const provisionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/vm-provisioner`;

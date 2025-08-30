@@ -13,8 +13,13 @@ import {
   CheckCircle,
   Clock,
   RefreshCw,
-  FileText
+  FileText,
+  Shield
 } from 'lucide-react';
+
+// Configuration constants
+const GRACE_PERIOD_DAYS = 3;
+const DELETION_PERIOD_DAYS = 30;
 
 interface Subscription {
   customer_id: string;
