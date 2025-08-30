@@ -31,7 +31,7 @@ interface Subscription {
 interface Order {
   customer_id: string;
   order_id: number;
-  checkout_session_id: string;
+  checkout_session_id: string | null;
   amount_total: number;
   currency: string;
   payment_status: string;
@@ -242,7 +242,7 @@ export function UserBilling() {
                       {formatDate(order.order_date)}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Sesión: {order.checkout_session_id.substring(0, 20)}...
+                      Sesión: {order.checkout_session_id ? order.checkout_session_id.substring(0, 20) + '...' : 'N/A'}
                     </p>
                   </div>
                   <div className="text-right">
