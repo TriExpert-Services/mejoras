@@ -46,6 +46,9 @@ Deno.serve(async (req) => {
       case 'stop':
         result = await controlVM(orderId, 'stop');
         break;
+      case 'delete':
+        result = await deleteVM(orderId);
+        break;
       case 'status':
         result = await getVMInfo(orderId);
         break;
