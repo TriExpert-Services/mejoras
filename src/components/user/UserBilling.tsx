@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useProducts } from '../../hooks/useProducts';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -42,6 +43,7 @@ export function UserBilling() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { products } = useProducts();
 
   useEffect(() => {
     fetchBillingData();
@@ -82,6 +84,11 @@ export function UserBilling() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getProductName = (priceId: string) => {
+    const product = products.find(p => p.priceId === priceId);
+    return product?.name || `Plan ${priceId.substring(0, 10)}...`;
   };
 
   const getStatusBadge = (status: string) => {
@@ -160,7 +167,7 @@ export function UserBilling() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium text-gray-900">Plan Activo</h3>
+                  <h3 className="font-medium text-gray-900">{getProductName(subscription.price_id)}</h3>
                   <p className="text-sm text-gray-600">ID: {subscription.price_id}</p>
                 </div>
                 {getStatusBadge(subscription.subscription_status)}

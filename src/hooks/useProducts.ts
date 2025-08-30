@@ -129,7 +129,7 @@ function convertVMSpecToProduct(vmSpec: VMSpec): Product {
       cpu: `${vmSpec.cpu_cores} vCPU${vmSpec.cpu_cores > 1 ? 's' : ''}`,
       ram: `${vmSpec.ram_gb} GB RAM`,
       disk: `${vmSpec.disk_gb} GB SSD`,
-      bandwidth: `${vmSpec.bandwidth_gb} TB`
+      bandwidth: `${vmSpec.bandwidth_gb} TB Bandwidth`
     }
   };
 }
