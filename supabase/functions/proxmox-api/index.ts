@@ -99,7 +99,6 @@ Deno.serve(async (req) => {
         endpoint = `/nodes/${defaultNode}/qemu/${vmId}`;
         method = 'DELETE';
         break;
-        break;
 
       case 'status':
         console.log(`Getting VM ${vmId} status...`);
