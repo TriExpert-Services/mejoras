@@ -10,7 +10,8 @@ import {
   Globe,
   ExternalLink,
   Book,
-  Zap
+  Zap,
+  Shield
 } from 'lucide-react';
 
 export function UserSupport() {
