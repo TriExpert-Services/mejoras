@@ -54,11 +54,19 @@ Deno.serve(async (req) => {
     // Call proxmox-api function to get real-time metrics
     const proxmoxApiUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/proxmox-api`;
     
+    // Validate environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
     const proxmoxResponse = await fetch(proxmoxApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'Authorization': `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({
         action: 'status',
@@ -66,7 +74,16 @@ Deno.serve(async (req) => {
       }),
     });
 
-    const proxmoxResult = await proxmoxResponse.json();
+    // Handle non-JSON responses (like HTML error pages)
+    const responseText = await proxmoxResponse.text();
+    let proxmoxResult;
+    
+    try {
+      proxmoxResult = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Non-JSON response from proxmox-api:', responseText);
+      throw new Error(`Proxmox API returned invalid response: ${responseText.substring(0, 100)}...`);
+    }
     
     if (!proxmoxResponse.ok) {
       throw new Error(proxmoxResult.error || 'Failed to fetch Proxmox metrics');
