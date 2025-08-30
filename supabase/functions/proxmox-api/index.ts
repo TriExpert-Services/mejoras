@@ -99,9 +99,9 @@ Deno.serve(async (req) => {
 
       switch (action) {
         case 'create-lxc': {
-          const { vmid, template, hostname, password, cores, memory, disk, network, unprivileged, features, nameserver } = body.config || {};
+          const { vmid, template, hostname, password, cores, memory, rootfs, network, unprivileged, features, nameserver } = body.config || {};
           
-          console.log('Creating LXC with params:', { vmid, template, hostname, cores, memory, disk });
+          console.log('Creating LXC with params:', { vmid, template, hostname, cores, memory, rootfs });
           
           // Create LXC container
           const createParams = new URLSearchParams({
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
             password: password,
             cores: cores.toString(),
             memory: memory.toString(),
-            disk: disk.toString(),
+            rootfs: rootfs,
             net0: network || 'name=eth0,bridge=vmbr0,ip=dhcp',
             unprivileged: unprivileged || '1',
             features: features || 'nesting=1',
