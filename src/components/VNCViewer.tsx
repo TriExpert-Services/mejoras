@@ -11,6 +11,7 @@ declare global {
     noVNCLoaded?: boolean;
     noVNCLoadError?: boolean;
   }
+}
 
 interface VNCViewerProps {
   vmId: string;
@@ -35,9 +36,6 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
     setError(null);
 
     try {
-      // @ts-ignore - RFB is loaded globally via script tag
-      const rfb = new window.RFB(screenRef.current, `wss://your-proxmox-server:8006/api2/json/nodes/proxmox/qemu/${vmId}/vncwebsocket`, {
-
       // Get VNC ticket from our edge function
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -78,7 +76,7 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
       }
 
       // Initialize noVNC RFB client
-      const rfbConnection = new RFB(vncRef.current, wsUrl, {
+      const rfbConnection = new window.RFB(vncRef.current, wsUrl, {
         credentials: { password: '' }, // Empty password for ticket auth
       });
 
