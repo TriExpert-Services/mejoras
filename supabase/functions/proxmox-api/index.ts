@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
       switch (action) {
         case 'create-lxc': {
-          const { vmid, template, hostname, password, cores, memory, disk, network } = body;
+          const { vmid, template, hostname, password, cores, memory, disk, network, unprivileged, features, nameserver } = body.config || {};
           
           console.log('Creating LXC with params:', { vmid, template, hostname, cores, memory, disk });
           
@@ -111,11 +111,11 @@ Deno.serve(async (req) => {
             password: password,
             cores: cores.toString(),
             memory: memory.toString(),
-            rootfs: disk.toString(),
+            disk: disk.toString(),
             net0: network || 'name=eth0,bridge=vmbr0,ip=dhcp',
-            unprivileged: '1',
-            features: 'nesting=1',
-            nameserver: '8.8.8.8'
+            unprivileged: unprivileged || '1',
+            features: features || 'nesting=1',
+            nameserver: nameserver || '8.8.8.8'
           });
 
           const createResult = await makeProxmoxRequest(
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         }
 
         case 'start': {
-          const { vmid } = body;
+          const vmid = body.vmId;
           const result = await makeProxmoxRequest(
             proxmoxConfig,
             `/nodes/${proxmoxConfig.node}/lxc/${vmid}/status/start`,
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
         }
 
         case 'stop': {
-          const { vmid } = body;
+          const vmid = body.vmId;
           const result = await makeProxmoxRequest(
             proxmoxConfig,
             `/nodes/${proxmoxConfig.node}/lxc/${vmid}/status/stop`,
@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
         }
 
         case 'delete': {
-          const { vmid } = body;
+          const vmid = body.vmId;
           const result = await makeProxmoxRequest(
             proxmoxConfig,
             `/nodes/${proxmoxConfig.node}/lxc/${vmid}`,
@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
         }
 
         case 'status': {
-          const { vmid } = body;
+          const vmid = body.vmId;
           const result = await makeProxmoxRequest(
             proxmoxConfig,
             `/nodes/${proxmoxConfig.node}/lxc/${vmid}/status/current`
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
         }
 
         case 'task-status': {
-          const { upid } = body;
+          const upid = body.config?.upid;
           const taskId = upid.startsWith('UPID:') ? upid.substring(5) : upid;
           const result = await makeProxmoxRequest(
             proxmoxConfig,
@@ -371,102 +371,4 @@ async function getProxmoxStats(config: any) {
       // Memory in GB  
       memory_used: nodeData?.memory ? (nodeData.memory.used / (1024 * 1024 * 1024)) : 0,
       memory_total: nodeData?.memory ? (nodeData.memory.total / (1024 * 1024 * 1024)) : 32,
-      memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 : 0,
-      
-      // Storage in GB
-      disk_used: totalStorageUsed,
-      disk_total: totalStorageTotal,
-      disk_usage_percent: totalStorageTotal > 0 ? (totalStorageUsed / totalStorageTotal) * 100 : 0,
-      
-      // VM counts
-      active_vms: runningVMs,
-      total_vms: totalVMs,
-      
-      // Node info
-      node_name: nodeData?.name || config.node,
-      pve_version: versionData?.data?.version || 'Unknown',
-      
-      // Debug info
-      debug: {
-        node_data_keys: nodeData ? Object.keys(nodeData) : [],
-        vm_count: totalVMs,
-        running_vms: runningVMs,
-        storage_available: !!allStorageData,
-        storage_count: storageDetails.length,
-        storage_details: storageDetails,
-        vm_list: vmList ? vmList.map((vm: any) => ({
-          vmid: vm.vmid,
-          name: vm.name,
-          status: vm.status,
-          cpu: vm.cpu,
-          memory: vm.mem
-        })) : []
-      }
-    };
-
-    console.log('=== FINAL RESULT ===');
-    console.log('Connected successfully:', result.connected);
-    console.log('CPU usage:', result.cpu_usage);
-    console.log('Memory usage:', result.memory_usage_percent);
-    console.log('VMs:', `${result.active_vms}/${result.total_vms}`);
-    console.log('Uptime:', result.uptime_formatted);
-    
-    return result;
-
-  } catch (error: any) {
-    console.error('=== PROXMOX CONNECTION ERROR ===');
-    console.error('Error type:', error.constructor.name);
-    console.error('Error message:', error.message);
-    console.error('Stack:', error.stack);
-    
-    throw new Error(`No se pudo conectar al servidor Proxmox: ${error.message}`);
-  }
-}
-
-async function makeProxmoxRequest(config: any, endpoint: string, method = 'GET', body?: string) {
-  const url = `https://${config.host}:${config.port}/api2/json${endpoint}`;
-  
-  const headers: Record<string, string> = {
-    'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
-  };
-
-  if (method === 'POST' && body) {
-    headers['Content-Type'] = 'application/x-www-form-urlencoded';
-  } else {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  console.log(`Making ${method} request to: ${url}`);
-  console.log('Using auth header:', `PVEAPIToken=${config.tokenId}=[SECRET]`);
-
-  const response = await fetch(url, {
-    method,
-    headers,
-    body,
-  });
-
-  console.log('Response status:', response.status);
-  console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`API error ${response.status}:`, errorText);
-    throw new Error(`Proxmox API error ${response.status}: ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log('Response data structure:', typeof data, Object.keys(data || {}));
-  return data.data;
-}
-function formatUptime(seconds: number): string {
-  if (!seconds || seconds === 0) return 'Detenido';
-  
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return `${seconds}s`;
-}
+      memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 :
