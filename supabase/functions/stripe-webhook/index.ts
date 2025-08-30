@@ -60,6 +60,31 @@ async function handleEvent(event: Stripe.Event) {
     return;
   }
 
+  // Handle subscription billing events
+  if (event.type === 'invoice.payment_failed') {
+    const invoice = stripeData as Stripe.Invoice;
+    if (invoice.customer) {
+      await handlePaymentFailed(invoice.customer as string, invoice);
+    }
+    return;
+  }
+
+  if (event.type === 'invoice.payment_succeeded') {
+    const invoice = stripeData as Stripe.Invoice;
+    if (invoice.customer) {
+      await handlePaymentSucceeded(invoice.customer as string, invoice);
+    }
+    return;
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = stripeData as Stripe.Subscription;
+    if (subscription.customer) {
+      await handleSubscriptionDeleted(subscription.customer as string);
+    }
+    return;
+  }
+
   if (!('customer' in stripeData)) {
     return;
   }
