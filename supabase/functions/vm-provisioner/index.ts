@@ -145,16 +145,16 @@ async function provisionLXC(orderId: string, templateId?: number) {
     // Call Proxmox API to create LXC container
     const proxmoxResult = await callProxmoxAPI('create-lxc', undefined, {
       vmid,
-      node: 'pve',
-      ostemplate: template.ctTemplate,
+      template: template.ctTemplate,
       hostname: containerName,
       password: rootPassword,
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
       disk: `${order.vm_specs.disk_gb}G`,
-      net0: `name=eth0,bridge=vmbr0,ip=${ipAddress}/24,gw=10.0.0.1`,
+      network: `name=eth0,bridge=vmbr0,ip=${ipAddress}/24,gw=10.0.0.1`,
+      unprivileged: '1',
+      features: 'nesting=1',
       nameserver: '8.8.8.8',
-      searchdomain: 'local',
     });
 
     if (!proxmoxResult.success) {
