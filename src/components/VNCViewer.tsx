@@ -21,33 +21,39 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
   const rfbRef = useRef<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [noVNCReady, setNoVNCReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionInfo, setConnectionInfo] = useState<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    // Auto-connect when component mounts
-    connectToVNC();
+    // Check if noVNC is already loaded
+    if (window.RFB) {
+      setNoVNCReady(true);
+    } else {
+      // Dynamically load noVNC if not available
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/lib/rfb.js';
+      script.onload = () => {
+        setNoVNCReady(true);
+      };
+      script.onerror = () => {
+        setError('Failed to load noVNC library');
+      };
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Auto-connect when noVNC is ready
+    if (noVNCReady) {
+      connectToVNC();
+    }
     
     return () => {
       // Cleanup RFB connection when component unmounts
       if (rfbRef.current) {
         rfbRef.current.disconnect();
-        rfbRef.current = null;
-      }
-    };
-  }, [vmId]);
-
-  const connectToVNC = async () => {
-    setIsConnecting(true);
-    setError(null);
-
-    try {
-      // First check if noVNC is loaded
-      if (!window.RFB) {
-        throw new Error('noVNC library not loaded. Please refresh the page.');
-      }
-
       // Get VNC connection info from Proxmox
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
