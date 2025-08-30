@@ -10,7 +10,8 @@ import {
   DollarSign,
   Activity,
   Shield,
-  Database
+  Database,
+  FileText
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -55,6 +56,18 @@ export function AdminSidebar({ currentSection, onSectionChange }: AdminSidebarPr
       name: 'Órdenes y Pagos',
       icon: DollarSign,
       description: 'Historial de transacciones'
+    },
+    {
+      id: 'pricing',
+      name: 'Precios y Stripe',
+      icon: DollarSign,
+      description: 'Gestionar precios y configuración de Stripe'
+    },
+    {
+      id: 'legal',
+      name: 'Legal y Políticas',
+      icon: FileText,
+      description: 'Términos de servicio y políticas'
     },
     {
       id: 'monitoring',
