@@ -47,121 +47,109 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'list-templates':
-        console.log('Listing all VM templates...');
-        endpoint = `/nodes/${config?.node || defaultNode}/qemu`;
+        console.log('Listing all CT templates...');
+        endpoint = `/nodes/${config?.node || defaultNode}/storage/local/content?content=vztmpl`;
         method = 'GET';
         break;
         
-      case 'resize':
-        console.log(`Resizing VM ${vmId} resources...`);
-        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/config`;
-        method = 'PUT';
-        body = new URLSearchParams({
-          cores: config.cores.toString(),
-          memory: config.memory.toString(),
-          ...(config.ipAddress && {
-            ipconfig0: `ip=${config.ipAddress}/24,gw=${Deno.env.get('PVE_DEFAULT_GATEWAY') || '10.0.0.1'}`,
-            cipassword: config.password,
-          }),
-        });
-        break;
-
-      case 'clone':
-        console.log(`Cloning template ${config.template} to VM ${config.vmid}...`);
-        endpoint = `/nodes/${config.node}/qemu/${config.template}/clone`;
+      case 'create-lxc':
+        console.log(`Creating LXC container ${config.vmid} from template ${config.ostemplate}...`);
+        endpoint = `/nodes/${config.node}/lxc`;
         method = 'POST';
         body = new URLSearchParams({
-          newid: config.vmid.toString(),
-          name: config.name,
-          node: config.node,
-          storage: Deno.env.get('PVE_DEFAULT_STORAGE') || 'local-lvm',
-          format: 'raw',
-          full: '1', // Full clone
+          vmid: config.vmid.toString(),
+          ostemplate: config.ostemplate,
+          hostname: config.hostname || `ct-${config.vmid}`,
+          password: config.password,
+          cores: config.cores.toString(),
+          memory: config.memory.toString(),
+          rootfs: config.rootfs.toString(),
+          net0: config.net0 || 'name=eth0,bridge=vmbr0,ip=dhcp',
+          unprivileged: '1', // Safer unprivileged containers
+          features: 'nesting=1', // Allow Docker if needed
+          nameserver: config.nameserver || '8.8.8.8',
+          searchdomain: config.searchdomain || 'local',
         });
         break;
 
       case 'start':
-        console.log(`Starting VM ${vmId}...`);
-        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/status/start`;
+        console.log(`Starting container ${vmId}...`);
+        endpoint = `/nodes/${defaultNode}/lxc/${vmId}/status/start`;
         method = 'POST';
         body = new URLSearchParams();
         break;
 
       case 'stop':
-        console.log(`Stopping VM ${vmId}...`);
-        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/status/stop`;
-          console.log('Listing all CT templates...');
-          endpoint = `/nodes/${config?.node || defaultNode}/storage/local/content?content=vztmpl`;
+        console.log(`Stopping container ${vmId}...`);
+        endpoint = `/nodes/${defaultNode}/lxc/${vmId}/status/stop`;
+        method = 'POST';
+        body = new URLSearchParams();
         break;
-        
+
       case 'delete':
-        console.log(`Deleting VM ${vmId}...`);
-          console.log(`Resizing container ${vmId} resources...`);
-          endpoint = `/nodes/${defaultNode}/lxc/${vmId}/config`;
+        console.log(`Deleting container ${vmId}...`);
+        endpoint = `/nodes/${defaultNode}/lxc/${vmId}`;
+        method = 'DELETE';
         break;
 
       case 'status':
-        console.log(`Getting VM ${vmId} status...`);
-            rootfs: `${config.disk}`,
+        console.log(`Getting container ${vmId} status...`);
+        endpoint = `/nodes/${defaultNode}/lxc/${vmId}/status/current`;
+        method = 'GET';
+        break;
+
       case 'config':
-        console.log(`Getting VM ${vmId} config...`);
-        endpoint = `/nodes/${defaultNode}/qemu/${vmId}/config`;
-        case 'create-lxc':
-          console.log(`Creating LXC container ${config.vmid} from template ${config.ostemplate}...`);
-          endpoint = `/nodes/${config.node}/lxc`;
+        console.log(`Getting container ${vmId} config...`);
+        endpoint = `/nodes/${defaultNode}/lxc/${vmId}/config`;
+        method = 'GET';
+        break;
+
+      case 'task-status':
+        console.log(`Getting task status ${config.upid}...`);
+        endpoint = `/nodes/${defaultNode}/tasks/${config.upid}/status`;
+        method = 'GET';
+        break;
+
       default:
         throw new Error(`Unknown action: ${action}`);
-            vmid: config.vmid.toString(),
-            ostemplate: config.ostemplate,
-            hostname: config.hostname || `ct-${config.vmid}`,
-            password: config.password,
-            cores: config.cores.toString(),
-            memory: config.memory.toString(),
-            rootfs: config.rootfs.toString(),
-            net0: config.net0 || 'name=eth0,bridge=vmbr0,ip=dhcp',
-            unprivileged: '1', // Safer unprivileged containers
-            features: 'nesting=1', // Allow Docker if needed
+    }
+
+    const url = `${proxmoxApiUrl}${endpoint}`;
+    console.log(`Making ${method} request to: ${url}`);
 
     const response = await fetch(url, {
       method,
       headers,
-          console.log(`Starting container ${vmId}...`);
-          endpoint = `/nodes/${defaultNode}/lxc/${vmId}/status/start`;
+      body,
+    });
 
     const result = await response.json();
     
     if (!response.ok) {
       console.error('Proxmox API error:', result);
-          console.log(`Stopping container ${vmId}...`);
-          endpoint = `/nodes/${defaultNode}/lxc/${vmId}/status/stop`;
+      return new Response(
+        JSON.stringify({ 
           success: false, 
           error: `Proxmox API error ${response.status}: ${JSON.stringify(result)}` 
         }),
         { 
           status: response.status, 
-          console.log(`Deleting container ${vmId}...`);
-          endpoint = `/nodes/${defaultNode}/lxc/${vmId}`;
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
     console.log('Proxmox API success:', result);
-          console.log(`Getting container ${vmId} status...`);
-          endpoint = `/nodes/${defaultNode}/lxc/${vmId}/status/current`;
+    return new Response(
       JSON.stringify({ success: true, data: result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-          console.log(`Getting container ${vmId} config...`);
-          endpoint = `/nodes/${defaultNode}/lxc/${vmId}/config`;
+  } catch (error: any) {
+    console.error('Proxmox API error:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { 
-        case 'task-status':
-          console.log(`Getting task status ${config.upid}...`);
-          endpoint = `/nodes/${defaultNode}/tasks/${config.upid}/status`;
-          method = 'GET';
-          break;
-
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }

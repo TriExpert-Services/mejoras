@@ -7,7 +7,7 @@ export interface Template {
   description: string;
   icon: string;
   color: string;
-  ctTemplate: string; // Actual CT template filename
+  ctTemplate: string; // Actual CT template filename from storage
 }
 
 export const templates: Template[] = [
@@ -43,6 +43,16 @@ export const templates: Template[] = [
   },
   {
     id: 104,
+    name: 'Debian 11',
+    os: 'debian',
+    version: '11',
+    description: 'Debian 11 Bullseye Container - Sistema estable y ligero',
+    icon: '🔴',
+    color: 'red',
+    ctTemplate: 'local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst'
+  },
+  {
+    id: 105,
     name: 'Debian 12',
     os: 'debian',
     version: '12',
@@ -52,7 +62,17 @@ export const templates: Template[] = [
     ctTemplate: 'local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst'
   },
   {
-    id: 105,
+    id: 106,
+    name: 'Debian 13',
+    os: 'debian',
+    version: '13',
+    description: 'Debian 13 Trixie Container - Próxima generación estable',
+    icon: '🔴',
+    color: 'red',
+    ctTemplate: 'local:vztmpl/debian-13-standard_13.0-1_amd64.tar.zst'
+  },
+  {
+    id: 107,
     name: 'AlmaLinux 9',
     os: 'almalinux',
     version: '9',
@@ -62,7 +82,7 @@ export const templates: Template[] = [
     ctTemplate: 'local:vztmpl/almalinux-9-default_20240911_amd64.tar.xz'
   },
   {
-    id: 106,
+    id: 108,
     name: 'Rocky Linux 9',
     os: 'rocky',
     version: '9',
@@ -72,7 +92,7 @@ export const templates: Template[] = [
     ctTemplate: 'local:vztmpl/rockylinux-9-default_20240912_amd64.tar.xz'
   },
   {
-    id: 107,
+    id: 109,
     name: 'CentOS Stream 9',
     os: 'centos',
     version: '9',
@@ -82,7 +102,7 @@ export const templates: Template[] = [
     ctTemplate: 'local:vztmpl/centos-9-stream-default_20240826_amd64.tar.xz'
   },
   {
-    id: 108,
+    id: 110,
     name: 'Fedora 42',
     os: 'fedora',
     version: '42',
@@ -105,6 +125,6 @@ export function getTemplatesByOS(os: string): Template[] {
 export const defaultTemplates = {
   web: 101,      // Ubuntu 24.04 LTS
   development: 103, // Ubuntu 25.04 (latest)
-  enterprise: 105,  // AlmaLinux 9
+  enterprise: 107,  // AlmaLinux 9
   stable: 102,      // Ubuntu 22.04 LTS
 };
