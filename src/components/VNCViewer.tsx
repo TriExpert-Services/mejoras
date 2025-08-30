@@ -8,6 +8,8 @@ import { Monitor, Maximize2, RotateCcw, X, AlertCircle } from 'lucide-react';
 declare global {
   interface Window {
     RFB: any;
+    noVNCLoaded?: boolean;
+    noVNCLoadError?: boolean;
   }
 }
 
@@ -30,15 +32,22 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
       return;
     }
 
-    // Wait for noVNC library to load
+    // Wait for noVNC library to load with better error handling
     let attempts = 0;
-    while (!window.RFB && attempts < 50) {
+    const maxAttempts = 100; // 10 seconds max wait
+    
+    while (!window.RFB && !window.noVNCLoadError && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
     
+    if (window.noVNCLoadError) {
+      setError('noVNC library failed to load from all CDN sources. Please check your internet connection and try refreshing the page.');
+      return;
+    }
+    
     if (!window.RFB) {
-      setError('noVNC library failed to load. Please refresh the page and try again.');
+      setError('noVNC library took too long to load. Please refresh the page and try again.');
       return;
     }
 
