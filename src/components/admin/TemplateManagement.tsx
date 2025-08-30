@@ -127,6 +127,24 @@ export function TemplateManagement() {
     }
   };
 
+  const handleEditTemplate = async (templateId: string, updates: Partial<OSTemplate>) => {
+    try {
+      const { error } = await supabase
+        .from('custom_templates')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', templateId);
+
+      if (error) throw error;
+
+      setTemplates(prev => prev.map(template => 
+        template.id === templateId ? { ...template, ...updates } : template
+      ));
+      setEditingTemplate(null);
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
   const handleToggleActive = async (templateId: string, isActive: boolean) => {
     try {
       const { error } = await supabase
