@@ -438,7 +438,7 @@ async function generateUniqueIP(): Promise<string> {
   const { data: existingVMs } = await supabase
     .from('vms')
     .select('ip_address')
-    .not('deleted_at', 'is', null)
+    .is('deleted_at', null)
     .not('ip_address', 'is', null);
 
   const usedIPs = new Set(
