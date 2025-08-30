@@ -371,7 +371,79 @@ async function getProxmoxStats(config: any) {
       // Memory in GB  
       memory_used: nodeData?.memory ? (nodeData.memory.used / (1024 * 1024 * 1024)) : 0,
       memory_total: nodeData?.memory ? (nodeData.memory.total / (1024 * 1024 * 1024)) : 32,
+      
+      // Storage in GB
+      storage_used: totalStorageUsed,
+      storage_total: totalStorageTotal,
+      storage_usage_percent: totalStorageTotal > 0 ? (totalStorageUsed / totalStorageTotal) * 100 : 0,
+      storage_details: storageDetails,
+      
+      // VM statistics
+      vms_total: totalVMs,
+      vms_running: runningVMs,
+      
+      // Raw node data for debugging
+      raw_node_data: nodeData,
+      version_info: versionData
+    };
+
+    console.log('Returning stats:', result);
+    return result;
+
+  } catch (error: any) {
+    console.error('Error in getProxmoxStats:', error);
+    throw error;
+  }
+}
+
+async function makeProxmoxRequest(config: any, endpoint: string, method: string = 'GET', body?: string) {
+  try {
+    const url = `https://${config.host}:${config.port}/api2/json${endpoint}`;
+    console.log(`Making Proxmox ${method} request to:`, url);
+    
+    const headers: Record<string, string> = {
+      'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
+    };
+
+    if (method === 'POST' && body) {
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: method === 'POST' ? body : undefined,
+    });
+
+    console.log(`Response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Proxmox API error [${response.status}]:`, errorText);
+      throw new Error(`Proxmox API error [${response.status}]: ${errorText}`);
+    }
       memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 :
+    const data = await response.json();
+    console.log('Proxmox response data:', data);
+    
+    return data?.data || data;
+  } catch (error: any) {
+    console.error('Error making Proxmox request:', error);
+    throw error;
+  }
+}
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m`;
     }
   }
 }
