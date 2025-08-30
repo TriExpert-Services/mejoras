@@ -915,6 +915,9 @@ export function AdminPanel() {
       case 'legal':
         return <LegalManagement />;
 
+      case 'suspensions':
+        return <SuspensionManagement />;
+
       case 'orders':
         return (
           <div className="space-y-8">
