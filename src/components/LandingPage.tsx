@@ -137,7 +137,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                   <div className="text-sm text-gray-400">Uptime Garantizado</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-green-400"><5min</div>
+                  <div className="text-3xl font-bold text-green-400">&lt;5min</div>
                   <div className="text-sm text-gray-400">Aprovisionamiento</div>
                 </div>
                 <div>
