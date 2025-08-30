@@ -1,17 +1,18 @@
-import { useState } from 'react';
-import { Button } from '../ui/button';
+import React from 'react';
+import { cn } from '../../lib/utils';
 import { 
   LayoutDashboard,
   Users,
   Server,
+  Network,
+  FileImage,
   Settings,
-  CreditCard,
-  AlertTriangle,
-  HardDrive,
-  FileText,
-  LogOut
+  DollarSign,
+  Activity,
+  Shield,
+  Database,
+  FileText
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 
 interface AdminSidebarProps {
   currentSection: string;
@@ -19,109 +20,140 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ currentSection, onSectionChange }: AdminSidebarProps) {
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    try {
-      await supabase.auth.signOut();
-      window.location.reload();
-    } catch (error) {
-      console.error('Error logging out:', error);
-    } finally {
-      setLoggingOut(false);
-    }
-  };
-
-  const menuItems = [
+  const sections = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
+      id: 'overview',
+      name: 'Panel General',
       icon: LayoutDashboard,
+      description: 'Estadísticas y resumen'
     },
     {
       id: 'users',
-      label: 'Usuarios',
+      name: 'Gestión de Usuarios',
       icon: Users,
+      description: 'Administrar usuarios y permisos'
     },
     {
       id: 'vms',
-      label: 'VPS',
+      name: 'Gestión de VPS',
       icon: Server,
-    },
-    {
-      id: 'suspensions',
-      label: 'Suspensiones',
-      icon: AlertTriangle,
-    },
-    {
-      id: 'prices',
-      label: 'Precios',
-      icon: CreditCard,
-    },
-    {
-      id: 'templates',
-      label: 'Plantillas',
-      icon: HardDrive,
+      description: 'Administrar servidores virtuales'
     },
     {
       id: 'ip-pools',
-      label: 'IP Pools',
-      icon: Settings,
+      name: 'Redes e IPs',
+      icon: Network,
+      description: 'Gestionar grupos de IP y redes'
+    },
+    {
+      id: 'templates',
+      name: 'Plantillas',
+      icon: FileImage,
+      description: 'Gestionar plantillas de SO'
+    },
+    {
+      id: 'orders',
+      name: 'Órdenes y Pagos',
+      icon: DollarSign,
+      description: 'Historial de transacciones'
+    },
+    {
+      id: 'pricing',
+      name: 'Precios y Stripe',
+      icon: DollarSign,
+      description: 'Gestionar precios y configuración de Stripe'
     },
     {
       id: 'legal',
-      label: 'Legal',
+      name: 'Legal y Políticas',
       icon: FileText,
+      description: 'Términos de servicio y políticas'
     },
+    {
+      id: 'monitoring',
+      name: 'Monitoreo',
+      icon: Activity,
+      description: 'Recursos del servidor'
+    },
+    {
+      id: 'security',
+      name: 'Seguridad',
+      icon: Shield,
+      description: 'Logs y seguridad'
+    },
+    {
+      id: 'settings',
+      name: 'Configuración',
+      icon: Settings,
+      description: 'Ajustes de la plataforma'
+    }
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
-      {/* Logo/Header */}
+    <aside className="w-80 bg-white border-r border-gray-200 h-screen overflow-y-auto">
       <div className="p-6 border-b border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900">Panel Admin</h2>
-        <p className="text-sm text-gray-600">Gestión del sistema</p>
+        <div className="flex items-center">
+          <div className="bg-purple-600 p-2 rounded-lg mr-3">
+            <Database className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Admin Panel</h2>
+            <p className="text-sm text-gray-600">Panel de Administración</p>
+          </div>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="p-4">
         <div className="space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentSection === item.id;
+          {sections.map((section) => {
+            const Icon = section.icon;
+            const isActive = currentSection === section.id;
             
             return (
-              <Button
-                key={item.id}
-                variant={isActive ? "default" : "ghost"}
-                className={`w-full justify-start ${
+              <button
+                key={section.id}
+                onClick={() => onSectionChange(section.id)}
+                className={cn(
+                  "w-full flex items-start p-3 rounded-lg text-left transition-all duration-200 group",
                   isActive 
-                    ? "bg-blue-600 text-white hover:bg-blue-700" 
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-                onClick={() => onSectionChange(item.id)}
+                    ? "bg-purple-100 border-purple-500 shadow-sm" 
+                    : "hover:bg-gray-50 border-transparent"
+                )}
               >
-                <Icon className="h-4 w-4 mr-3" />
-                {item.label}
-              </Button>
+                <Icon className={cn(
+                  "h-5 w-5 mt-0.5 mr-3 transition-colors",
+                  isActive 
+                    ? "text-purple-600" 
+                    : "text-gray-500 group-hover:text-gray-700"
+                )} />
+                
+                <div className="flex-1 min-w-0">
+                  <div className={cn(
+                    "font-medium text-sm transition-colors",
+                    isActive 
+                      ? "text-purple-900" 
+                      : "text-gray-900 group-hover:text-gray-900"
+                  )}>
+                    {section.name}
+                  </div>
+                  <div className={cn(
+                    "text-xs mt-1 transition-colors",
+                    isActive 
+                      ? "text-purple-700" 
+                      : "text-gray-500 group-hover:text-gray-600"
+                  )}>
+                    {section.description}
+                  </div>
+                </div>
+                
+                {isActive && (
+                  <div className="w-1 h-8 bg-purple-600 rounded-full ml-2"></div>
+                )}
+              </button>
             );
           })}
         </div>
       </nav>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-red-600 hover:bg-red-50"
-          onClick={handleLogout}
-          disabled={loggingOut}
-        >
-          <LogOut className="h-4 w-4 mr-3" />
-          {loggingOut ? 'Cerrando...' : 'Cerrar Sesión'}
-        </Button>
-      </div>
-    </div>
+    </aside>
   );
 }
