@@ -53,6 +53,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    console.log('VMMetrics mounted with vmId:', vmId);
     fetchMetrics();
     
     // Auto-refresh every 5 seconds for real-time metrics
@@ -65,6 +66,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   }, [vmId]);
 
   const fetchMetrics = async () => {
+    console.log('Fetching metrics for vmId:', vmId);
     // Only show loading on initial fetch
     if (metrics.length === 0) {
       setLoading(true);
@@ -82,6 +84,8 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
         ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-metrics?vmId=${vmId}`
         : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-metrics`;
 
+      console.log('Making request to:', url);
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -90,16 +94,34 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
         },
       });
 
+      console.log('Response status:', response.status);
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        throw new Error(errorData.error || `Error ${response.status}`);
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { error: responseText };
+        }
+        throw new Error(errorData.error || `Error ${response.status}: ${responseText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', responseText);
+        throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
+      }
+
+      console.log('Parsed data:', data);
       setMetrics(Array.isArray(data) ? data : [data]);
       setError(null);
 
     } catch (error: any) {
+      console.error('Error in fetchMetrics:', error);
       // Handle VM not found error gracefully
       if (error.message === 'VM not found') {
         setVmPermanentlyGone(true);
@@ -132,6 +154,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
 
   // If VM is permanently gone, don't render anything
   if (vmPermanentlyGone) {
+    console.log('VM permanently gone, not rendering');
     return null;
   }
 
@@ -154,6 +177,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   };
 
   if (loading) {
+    console.log('VMMetrics in loading state');
     return (
       <Card>
         <CardContent className="p-6">
@@ -167,6 +191,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   }
 
   if (error) {
+    console.log('VMMetrics showing error:', error);
     return (
       <Card>
         <CardContent className="p-6">
@@ -185,6 +210,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   }
 
   if (metrics.length === 0) {
+    console.log('VMMetrics: no metrics available');
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -195,6 +221,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
     );
   }
 
+  console.log('VMMetrics rendering with data:', metrics);
   return (
     <div className="space-y-6">
       {metrics.map((metric) => (
