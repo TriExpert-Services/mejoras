@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { AdminSidebar } from './AdminSidebar';
-import { IPPoolManagement } from './IPPoolManagement';
-import { TemplateManagement } from './TemplateManagement';
-import { UserManagement } from './UserManagement';
-import { PriceManagement } from './PriceManagement';
-import { LegalManagement } from './LegalManagement';
+import { AdminSidebar } from './admin/AdminSidebar';
+import { IPPoolManagement } from './admin/IPPoolManagement';
+import { TemplateManagement } from './admin/TemplateManagement';
+import { UserManagement } from './admin/UserManagement';
+import { PriceManagement } from './admin/PriceManagement';
+import { LegalManagement } from './admin/LegalManagement';
 import { TemplateSelector } from './TemplateSelector';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
