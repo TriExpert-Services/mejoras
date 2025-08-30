@@ -127,7 +127,7 @@ export function UserBilling() {
   const formatCurrency = (amount: number, currency: string = 'usd') => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: currency.toUpperCase(),
+      currency: (currency || 'usd').toUpperCase(),
     }).format(amount / 100);
   };
 
@@ -258,5 +258,3 @@ export function UserBilling() {
         </CardContent>
       </Card>
     </div>
-  );
-}
