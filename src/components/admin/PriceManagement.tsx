@@ -55,14 +55,23 @@ export function PriceManagement() {
 
   const fetchVMSpecs = async () => {
     try {
+      console.log('Fetching VM specs...');
+      setError(null);
+      
       const { data, error } = await supabase
         .from('vm_specs')
         .select('*')
         .order('monthly_price', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Fetch VM specs error:', error);
+        throw error;
+      }
+      
+      console.log('VM specs fetched:', data);
       setVmSpecs(data || []);
     } catch (error: any) {
+      console.error('fetchVMSpecs error:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -357,3 +366,5 @@ export function PriceManagement() {
     </div>
   );
 }
+
+export { PriceManagement }
