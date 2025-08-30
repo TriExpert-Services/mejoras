@@ -68,7 +68,7 @@ export function PriceManagement() {
         throw error;
       }
       
-      console.log('VM specs fetched:', data);
+      console.log('📊 VM specs cargados desde DB:', data);
       setVmSpecs(data || []);
     } catch (error: any) {
       console.error('fetchVMSpecs error:', error);
