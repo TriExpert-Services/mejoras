@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { AdminSidebar } from './admin/AdminSidebar';
+import { IPPoolManagement } from './admin/IPPoolManagement';
+import { TemplateManagement } from './admin/TemplateManagement';
+import { UserManagement } from './admin/UserManagement';
 import { TemplateSelector } from './TemplateSelector';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
@@ -77,6 +81,7 @@ interface AdminOrder {
 }
 
 export function AdminPanel() {
+  const [currentSection, setCurrentSection] = useState('overview');
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalVMs: 0,
@@ -99,11 +104,13 @@ export function AdminPanel() {
     
     // Auto-refresh every 10 seconds (silent updates)
     const interval = setInterval(() => {
-      silentFetchData();
+      if (currentSection === 'overview' || currentSection === 'monitoring') {
+        silentFetchData();
+      }
     }, 10000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [currentSection]);
 
   // Initial fetch that shows loading screen
   const initialFetchData = async () => {
@@ -385,288 +392,123 @@ export function AdminPanel() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mr-4" />
-          <span className="text-gray-600">Cargando panel de administración...</span>
+      <div className="flex h-screen">
+        <AdminSidebar currentSection={currentSection} onSectionChange={setCurrentSection} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+            <span className="text-gray-600">Cargando panel de administración...</span>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel de Administración</h1>
-        <p className="text-gray-600">Gestiona usuarios, VPS y recursos del servidor Proxmox</p>
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm">Usuarios Totales</p>
-                <p className="text-3xl font-bold">{stats.totalUsers}</p>
-              </div>
-              <Users className="h-10 w-10 text-blue-200" />
+  const renderContent = () => {
+    switch (currentSection) {
+      case 'overview':
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel General</h1>
+              <p className="text-gray-600">Resumen general de la plataforma</p>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm">VPS Totales</p>
-                <p className="text-3xl font-bold">{stats.totalVMs}</p>
-              </div>
-              <Server className="h-10 w-10 text-green-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm">VPS Activos</p>
-                <p className="text-3xl font-bold">{stats.activeVMs}</p>
-              </div>
-              <Activity className="h-10 w-10 text-purple-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm">Ingresos Totales</p>
-                <p className="text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
-              </div>
-              <DollarSign className="h-10 w-10 text-orange-200" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Proxmox Server Resources */}
-      <Card className="mb-8">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center">
-              <Monitor className="h-5 w-5 mr-2" />
-              Recursos del Servidor Proxmox
-            </CardTitle>
-            <div className="flex items-center gap-3">
-              {proxmoxStats ? getStatusBadge(proxmoxStats.connected ? 'online' : 'offline') : (
-                <Badge variant="secondary">Cargando...</Badge>
-              )}
-              {(loading || proxmoxLoading) && (
-                <div className="flex items-center text-xs text-blue-600">
-                  <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                  Actualizando...
-                </div>
-              )}
-              <Button
-                onClick={() => {
-                  setProxmoxLoading(true);
-                  fetchProxmoxStats();
-                }}
-                disabled={proxmoxLoading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Actualizar
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {proxmoxStats && proxmoxStats.connected ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <Cpu className="h-8 w-8 text-blue-600" />
-                  <span className="text-2xl font-bold text-blue-700">
-                    {proxmoxStats.cpu_usage.toFixed(1)}%
-                  </span>
-                </div>
-                <h4 className="font-semibold text-blue-900 mb-1">CPU Usage</h4>
-                <p className="text-sm text-blue-600">{proxmoxStats.cpu_cores} cores</p>
-                <div className="w-full bg-blue-200 rounded-full h-2 mt-3">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${Math.min(proxmoxStats.cpu_usage, 100)}%` }}
-                  ></div>
+            {/* Error Alert */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+                  <p className="text-red-700">{error}</p>
                 </div>
               </div>
+            )}
 
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <MemoryStick className="h-8 w-8 text-green-600" />
-                  <span className="text-2xl font-bold text-green-700">
-                    {proxmoxStats.memory_usage_percent.toFixed(1)}%
-                  </span>
-                </div>
-                <h4 className="font-semibold text-green-900 mb-1">RAM</h4>
-                <p className="text-sm text-green-600">
-                  {proxmoxStats.memory_used.toFixed(1)}GB / {proxmoxStats.memory_total.toFixed(0)}GB
-                </p>
-                <div className="w-full bg-green-200 rounded-full h-2 mt-3">
-                  <div 
-                    className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${Math.min(proxmoxStats.memory_usage_percent, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <HardDrive className="h-8 w-8 text-purple-600" />
-                  <span className="text-2xl font-bold text-purple-700">
-                    {proxmoxStats.disk_usage_percent.toFixed(1)}%
-                  </span>
-                </div>
-                <h4 className="font-semibold text-purple-900 mb-1">Almacenamiento</h4>
-                <p className="text-sm text-purple-600">
-                  {proxmoxStats.disk_used.toFixed(0)}GB / {proxmoxStats.disk_total.toFixed(0)}GB
-                </p>
-                <div className="w-full bg-purple-200 rounded-full h-2 mt-3">
-                  <div 
-                    className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${Math.min(proxmoxStats.disk_usage_percent, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <Activity className="h-8 w-8 text-orange-600" />
-                  <div className="text-right">
-                    <span className="text-lg font-bold text-orange-700">
-                      {proxmoxStats.uptime_formatted || formatUptime(proxmoxStats.uptime)}
-                    </span>
-                    <p className="text-xs text-orange-600">{proxmoxStats.active_vms}/{proxmoxStats.total_vms} VMs</p>
-                  </div>
-                </div>
-                <h4 className="font-semibold text-orange-900 text-sm mb-1">Red & Tiempo</h4>
-                <div className="text-xs text-orange-600 space-y-1">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <span>Nodo:</span>
-                    <span className="font-medium">{proxmoxStats.node_name}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>PVE Ver:</span>
-                    <span className="font-medium">{proxmoxStats.pve_version || 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center mt-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-orange-600">En Línea</span>
-                </div>
-              </div>
-            </div>
-          ) : null}
-          
-          {/* Show detailed storage information */}
-          {proxmoxStats && proxmoxStats.connected && proxmoxStats.debug?.storage_details && (
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Almacenamientos ({proxmoxStats.debug.storage_details.length})
-              </h3>
-              <div className="grid md:grid-cols-3 gap-4">
-                {proxmoxStats.debug.storage_details.map((storage: any, index: number) => (
-                  <div key={storage.name} className="bg-white p-4 rounded-lg shadow-sm border">
-                    <h4 className="font-medium text-gray-900 mb-2">{storage.name}</h4>
-                    <p className="text-sm text-gray-600 mb-2">Tipo: {storage.type}</p>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Usado:</span>
-                      <span>{storage.used_gb.toFixed(1)} GB</span>
+                    <div>
+                      <p className="text-blue-100 text-sm">Usuarios Totales</p>
+                      <p className="text-3xl font-bold">{stats.totalUsers}</p>
                     </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Total:</span>
-                      <span>{storage.total_gb.toFixed(1)} GB</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${Math.min(storage.usage_percent, 100)}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {storage.usage_percent.toFixed(1)}% usado
-                    </p>
+                    <Users className="h-10 w-10 text-blue-200" />
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {proxmoxStats && !proxmoxStats.connected ? (
-            <div className="text-center py-8">
-              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="font-medium text-gray-900 mb-2">No se pudo conectar al servidor Proxmox</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Verifica la configuración del servidor en las variables de entorno
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchProxmoxStats}
-                disabled={proxmoxLoading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${(proxmoxLoading || refreshing) ? 'animate-spin' : ''}`} />
-                Reintentar Conexión
-              </Button>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* VM Creation */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Server className="h-5 w-5 mr-2 text-green-600" />
-              Crear VPS Manualmente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600 mb-4">
-                Crear un VPS directamente sin pasar por Stripe (para testing)
-              </p>
-              
-              {/* Quick Create Buttons */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">Creación Rápida</h4>
-                <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-sm">VPS Totales</p>
+                      <p className="text-3xl font-bold">{stats.totalVMs}</p>
+                    </div>
+                    <Server className="h-10 w-10 text-green-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm">VPS Activos</p>
+                      <p className="text-3xl font-bold">{stats.activeVMs}</p>
+                    </div>
+                    <Activity className="h-10 w-10 text-purple-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm">Ingresos Totales</p>
+                      <p className="text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
+                    </div>
+                    <DollarSign className="h-10 w-10 text-orange-200" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* VM Creation Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Server className="h-5 w-5 mr-2 text-green-600" />
+                  Crear VPS Rápido
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Button
-                    onClick={() => handleCreateVM('vps-basic-1', 101)} // Ubuntu 24.04
+                    onClick={() => handleCreateVM('vps-basic-1', 101)}
                     disabled={actionLoading['vps-basic-1']}
                     className="bg-blue-600 hover:bg-blue-700 flex flex-col h-auto py-3"
                   >
                     <span className="font-medium">
                       {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
                     </span>
-                    <span className="text-xs opacity-90">1 CPU • 2GB • Ubuntu 24.04</span>
+                    <span className="text-xs opacity-90">1 CPU • 2GB • Ubuntu</span>
                   </Button>
                   
                   <Button
-                    onClick={() => handleCreateVM('vps-premium-1', 107)} // AlmaLinux
+                    onClick={() => handleCreateVM('vps-standard-1', 101)}
+                    disabled={actionLoading['vps-standard-1']}
+                    className="bg-green-600 hover:bg-green-700 flex flex-col h-auto py-3"
+                  >
+                    <span className="font-medium">
+                      {actionLoading['vps-standard-1'] ? 'Creando...' : 'VPS Standard'}
+                    </span>
+                    <span className="text-xs opacity-90">2 CPU • 4GB • Ubuntu</span>
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleCreateVM('vps-premium-1', 107)}
                     disabled={actionLoading['vps-premium-1']}
                     className="bg-purple-600 hover:bg-purple-700 flex flex-col h-auto py-3"
                   >
@@ -676,277 +518,540 @@ export function AdminPanel() {
                     <span className="text-xs opacity-90">4 CPU • 8GB • AlmaLinux</span>
                   </Button>
                 </div>
-              </div>
-              
-              {/* Advanced Template Selection */}
-              <div className="border-t pt-6">
-                <h4 className="font-medium text-gray-900 mb-4">Crear con Sistema Operativo Personalizado</h4>
-                
-                <div className="space-y-4">
-                  <TemplateSelector
-                    allowedTemplateIds={[101, 102, 103, 104, 105, 107, 108]}
-                    selectedTemplateId={selectedTemplates['custom'] || 101}
-                    onTemplateChange={(templateId) => 
-                      setSelectedTemplates(prev => ({ ...prev, custom: templateId }))
-                    }
-                  />
-                  
-                  <div className="grid grid-cols-3 gap-3">
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'monitoring':
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Monitoreo del Servidor</h1>
+              <p className="text-gray-600">Recursos en tiempo real del servidor Proxmox</p>
+            </div>
+
+            {/* Proxmox Server Resources */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Monitor className="h-5 w-5 mr-2" />
+                    Recursos del Servidor Proxmox
+                  </CardTitle>
+                  <div className="flex items-center gap-3">
+                    {proxmoxStats ? getStatusBadge(proxmoxStats.connected ? 'online' : 'offline') : (
+                      <Badge variant="secondary">Cargando...</Badge>
+                    )}
+                    {(loading || proxmoxLoading) && (
+                      <div className="flex items-center text-xs text-blue-600">
+                        <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                        Actualizando...
+                      </div>
+                    )}
                     <Button
-                      onClick={() => handleCreateVM('vps-basic-1', selectedTemplates['custom'] || 101)}
-                      disabled={actionLoading['vps-basic-1']}
-                      variant="outline"
-                      size="sm"
+                      onClick={() => {
+                        setProxmoxLoading(true);
+                        fetchProxmoxStats();
+                      }}
+                      disabled={proxmoxLoading}
                     >
-                      {actionLoading['vps-basic-1'] ? 'Creando...' : 'Básico'}
-                    </Button>
-                    
-                    <Button
-                      onClick={() => handleCreateVM('vps-premium-1', selectedTemplates['custom'] || 101)}
-                      disabled={actionLoading['vps-premium-1']}
-                      variant="outline"
-                      size="sm"
-                    >
-                      {actionLoading['vps-premium-1'] ? 'Creando...' : 'Premium'}
-                    </Button>
-                    
-                    <Button
-                      onClick={() => handleCreateVM('vps-enterprise-1', selectedTemplates['custom'] || 101)}
-                      disabled={actionLoading['vps-enterprise-1']}
-                      variant="outline"
-                      size="sm"
-                    >
-                      {actionLoading['vps-enterprise-1'] ? 'Creando...' : 'Enterprise'}
+                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                      Actualizar
                     </Button>
                   </div>
                 </div>
-              </div>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-xs text-yellow-700">
-                  <strong>Nuevo:</strong> Ahora usa contenedores LXC (mucho más rápido). Creación en ~30 segundos.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* VMs Management */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center">
-                <Server className="h-5 w-5 mr-2" />
-                VPS Recientes
-              </CardTitle>
-              <Button
-                onClick={() => {
-                  manualRefresh();
-                }}
-                disabled={refreshing}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Actualizar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {vms.length === 0 ? (
-                <div className="text-center py-8">
-                  <Server className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No hay VPS creados</p>
-                </div>
-              ) : (
-                vms.map((vm) => (
-                  <div key={vm.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{vm.name}</h4>
-                        <p className="text-sm text-gray-600">{vm.user_email}</p>
-                        <p className="text-xs text-blue-600">{vm.vm_spec_name}</p>
+              </CardHeader>
+              <CardContent>
+                {proxmoxStats && proxmoxStats.connected ? (
+                  <div>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <Cpu className="h-8 w-8 text-blue-600" />
+                          <span className="text-2xl font-bold text-blue-700">
+                            {proxmoxStats.cpu_usage.toFixed(1)}%
+                          </span>
+                        </div>
+                        <h4 className="font-semibold text-blue-900 mb-1">CPU Usage</h4>
+                        <p className="text-sm text-blue-600">{proxmoxStats.cpu_cores} cores</p>
+                        <div className="w-full bg-blue-200 rounded-full h-2 mt-3">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${Math.min(proxmoxStats.cpu_usage, 100)}%` }}
+                          ></div>
+                        </div>
                       </div>
-                      {getStatusBadge(vm.status)}
+
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <MemoryStick className="h-8 w-8 text-green-600" />
+                          <span className="text-2xl font-bold text-green-700">
+                            {proxmoxStats.memory_usage_percent.toFixed(1)}%
+                          </span>
+                        </div>
+                        <h4 className="font-semibold text-green-900 mb-1">RAM</h4>
+                        <p className="text-sm text-green-600">
+                          {proxmoxStats.memory_used.toFixed(1)}GB / {proxmoxStats.memory_total.toFixed(0)}GB
+                        </p>
+                        <div className="w-full bg-green-200 rounded-full h-2 mt-3">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${Math.min(proxmoxStats.memory_usage_percent, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <HardDrive className="h-8 w-8 text-purple-600" />
+                          <span className="text-2xl font-bold text-purple-700">
+                            {proxmoxStats.disk_usage_percent.toFixed(1)}%
+                          </span>
+                        </div>
+                        <h4 className="font-semibold text-purple-900 mb-1">Almacenamiento</h4>
+                        <p className="text-sm text-purple-600">
+                          {proxmoxStats.disk_used.toFixed(0)}GB / {proxmoxStats.disk_total.toFixed(0)}GB
+                        </p>
+                        <div className="w-full bg-purple-200 rounded-full h-2 mt-3">
+                          <div 
+                            className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${Math.min(proxmoxStats.disk_usage_percent, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
+                        <div className="flex items-center justify-between mb-3">
+                          <Activity className="h-8 w-8 text-orange-600" />
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-orange-700">
+                              {proxmoxStats.uptime_formatted || formatUptime(proxmoxStats.uptime)}
+                            </span>
+                            <p className="text-xs text-orange-600">{proxmoxStats.active_vms}/{proxmoxStats.total_vms} VMs</p>
+                          </div>
+                        </div>
+                        <h4 className="font-semibold text-orange-900 text-sm mb-1">Red & Tiempo</h4>
+                        <div className="text-xs text-orange-600 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span>Nodo:</span>
+                            <span className="font-medium">{proxmoxStats.node_name}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>PVE Ver:</span>
+                            <span className="font-medium">{proxmoxStats.pve_version || 'N/A'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center mt-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                          <span className="text-xs text-orange-600">En Línea</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>{vm.cpu_cores} vCPU • {vm.ram_gb}GB RAM</span>
-                      <div className="flex gap-2">
-                        {vm.status === 'stopped' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleVMAction(vm.id, 'start')}
-                            disabled={actionLoading[vm.id]}
-                            title="Iniciar VM"
-                          >
-                            <Play className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {vm.status === 'running' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleVMAction(vm.id, 'stop')}
-                            disabled={actionLoading[vm.id]}
-                            title="Detener VM"
-                          >
-                            <Square className="h-3 w-3" />
-                          </Button>
-                        )}
+
+                    {/* Show detailed storage information */}
+                    {proxmoxStats.debug?.storage_details && (
+                      <div className="mt-8">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                          Almacenamientos ({proxmoxStats.debug.storage_details.length})
+                        </h3>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          {proxmoxStats.debug.storage_details.map((storage: any, index: number) => (
+                            <div key={storage.name} className="bg-white p-4 rounded-lg shadow-sm border">
+                              <h4 className="font-medium text-gray-900 mb-2">{storage.name}</h4>
+                              <p className="text-sm text-gray-600 mb-2">Tipo: {storage.type}</p>
+                              <div className="flex justify-between text-sm mb-2">
+                                <span>Usado:</span>
+                                <span>{storage.used_gb.toFixed(1)} GB</span>
+                              </div>
+                              <div className="flex justify-between text-sm mb-2">
+                                <span>Total:</span>
+                                <span>{storage.total_gb.toFixed(1)} GB</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full" 
+                                  style={{ width: `${Math.min(storage.usage_percent, 100)}%` }}
+                                ></div>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {storage.usage_percent.toFixed(1)}% usado
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="font-medium text-gray-900 mb-2">No se pudo conectar al servidor Proxmox</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Verifica la configuración del servidor en las variables de entorno
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchProxmoxStats}
+                      disabled={proxmoxLoading}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${(proxmoxLoading || refreshing) ? 'animate-spin' : ''}`} />
+                      Reintentar Conexión
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'users':
+        return <UserManagement />;
+
+      case 'vms':
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de VPS</h1>
+              <p className="text-gray-600">Administra todos los servidores virtuales</p>
+            </div>
+
+            {/* VM Creation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Server className="h-5 w-5 mr-2 text-green-600" />
+                  Crear VPS Manualmente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Crear un VPS directamente sin pasar por Stripe (para testing)
+                  </p>
+                  
+                  {/* Quick Create Buttons */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Creación Rápida</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button
+                        onClick={() => handleCreateVM('vps-basic-1', 101)} // Ubuntu 24.04
+                        disabled={actionLoading['vps-basic-1']}
+                        className="bg-blue-600 hover:bg-blue-700 flex flex-col h-auto py-3"
+                      >
+                        <span className="font-medium">
+                          {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
+                        </span>
+                        <span className="text-xs opacity-90">1 CPU • 2GB • Ubuntu 24.04</span>
+                      </Button>
+                      
+                      <Button
+                        onClick={() => handleCreateVM('vps-premium-1', 107)} // AlmaLinux
+                        disabled={actionLoading['vps-premium-1']}
+                        className="bg-purple-600 hover:bg-purple-700 flex flex-col h-auto py-3"
+                      >
+                        <span className="font-medium">
+                          {actionLoading['vps-premium-1'] ? 'Creando...' : 'VPS Premium'}
+                        </span>
+                        <span className="text-xs opacity-90">4 CPU • 8GB • AlmaLinux</span>
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Advanced Template Selection */}
+                  <div className="border-t pt-6">
+                    <h4 className="font-medium text-gray-900 mb-4">Crear con Sistema Operativo Personalizado</h4>
+                    
+                    <div className="space-y-4">
+                      <TemplateSelector
+                        allowedTemplateIds={[101, 102, 103, 104, 105, 107, 108]}
+                        selectedTemplateId={selectedTemplates['custom'] || 101}
+                        onTemplateChange={(templateId) => 
+                          setSelectedTemplates(prev => ({ ...prev, custom: templateId }))
+                        }
+                      />
+                      
+                      <div className="grid grid-cols-3 gap-3">
                         <Button
-                          variant="ghost"
+                          onClick={() => handleCreateVM('vps-basic-1', selectedTemplates['custom'] || 101)}
+                          disabled={actionLoading['vps-basic-1']}
+                          variant="outline"
                           size="sm"
-                          onClick={() => {
-                            if (confirm('¿Estás seguro de que quieres eliminar este VM?')) {
-                              handleVMAction(vm.id, 'delete');
-                            }
-                          }}
-                          disabled={actionLoading[vm.id]}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          title="Eliminar VM"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          {actionLoading['vps-basic-1'] ? 'Creando...' : 'Básico'}
+                        </Button>
+                        
+                        <Button
+                          onClick={() => handleCreateVM('vps-premium-1', selectedTemplates['custom'] || 101)}
+                          disabled={actionLoading['vps-premium-1']}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {actionLoading['vps-premium-1'] ? 'Creando...' : 'Premium'}
+                        </Button>
+                        
+                        <Button
+                          onClick={() => handleCreateVM('vps-enterprise-1', selectedTemplates['custom'] || 101)}
+                          disabled={actionLoading['vps-enterprise-1']}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {actionLoading['vps-enterprise-1'] ? 'Creando...' : 'Enterprise'}
                         </Button>
                       </div>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Orders Management */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <DollarSign className="h-5 w-5 mr-2" />
-            Órdenes Recientes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {orders.length === 0 ? (
-              <div className="text-center py-8">
-                <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No hay órdenes registradas</p>
-              </div>
-            ) : (
-              orders.map((order) => (
-                <div key={order.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h4 className="font-medium text-gray-900">${order.total_amount}</h4>
-                      <p className="text-sm text-gray-600">{order.user_email}</p>
-                      <p className="text-xs text-blue-600">{order.vm_spec_name}</p>
-                    </div>
-                    {getStatusBadge(order.status)}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(order.created_at).toLocaleString('es-ES')}
+                  
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-xs text-yellow-700">
+                      <strong>Nuevo:</strong> Ahora usa contenedores LXC (mucho más rápido). Creación en ~30 segundos.
+                    </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
 
-      {/* System Controls */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center text-orange-600">
-            <Settings className="h-5 w-5 mr-2" />
-            Controles del Sistema
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Button
-              variant="outline"
-              onClick={() => alert('Función de mantenimiento en desarrollo')}
-              className="flex items-center justify-center"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Modo Mantenimiento
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                manualRefresh();
-              }}
-              disabled={refreshing}
-              className="flex items-center justify-center"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Actualizar Todo
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => alert('Función de backup en desarrollo')}
-              className="flex items-center justify-center"
-            >
-              <HardDrive className="h-4 w-4 mr-2" />
-              Backup Sistema
-            </Button>
+            {/* VMs Management */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Server className="h-5 w-5 mr-2" />
+                    VPS Activos
+                  </CardTitle>
+                  <Button
+                    onClick={() => {
+                      manualRefresh();
+                    }}
+                    disabled={refreshing}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    Actualizar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {vms.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Server className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No hay VPS creados</p>
+                    </div>
+                  ) : (
+                    vms.map((vm) => (
+                      <div key={vm.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-medium text-gray-900">{vm.name}</h4>
+                            <p className="text-sm text-gray-600">{vm.user_email}</p>
+                            <p className="text-xs text-blue-600">{vm.vm_spec_name}</p>
+                          </div>
+                          {getStatusBadge(vm.status)}
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <span>{vm.cpu_cores} vCPU • {vm.ram_gb}GB RAM</span>
+                          <div className="flex gap-2">
+                            {vm.status === 'stopped' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleVMAction(vm.id, 'start')}
+                                disabled={actionLoading[vm.id]}
+                                title="Iniciar VM"
+                              >
+                                <Play className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {vm.status === 'running' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleVMAction(vm.id, 'stop')}
+                                disabled={actionLoading[vm.id]}
+                                title="Detener VM"
+                              >
+                                <Square className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('¿Estás seguro de que quieres eliminar este VM?')) {
+                                  handleVMAction(vm.id, 'delete');
+                                }
+                              }}
+                              disabled={actionLoading[vm.id]}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Eliminar VM"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        );
 
-      {/* Test Stripe Flow */}
-      <Card className="mt-8 border-green-200 bg-green-50">
-        <CardHeader>
-          <CardTitle className="text-green-800 flex items-center">
-            <DollarSign className="h-5 w-5 mr-2" />
-            Test de Flujo Stripe
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-sm text-green-700">
-              Para probar el flujo completo de Stripe → Webhook → Creación VM automática
-            </p>
-            
-            <Button
-              onClick={() => window.open('/plans', '_blank')}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              🧪 Ir a Planes VPS (Test Stripe)
-            </Button>
-            
-            <div className="bg-white border border-green-200 rounded p-3 text-xs text-green-700">
-              <strong>Flujo de Testing:</strong><br />
-              1. Ir a Planes VPS<br />
-              2. Comprar cualquier plan con Stripe (modo test)<br />
-              3. Webhook debería crear VM automáticamente<br />
-              4. VM aparecerá en este panel admin
+      case 'ip-pools':
+        return <IPPoolManagement />;
+
+      case 'templates':
+        return <TemplateManagement />;
+
+      case 'orders':
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Órdenes y Pagos</h1>
+              <p className="text-gray-600">Historial completo de transacciones</p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Debug Info */}
-      {proxmoxStats && !proxmoxStats.connected && (
-        <Card className="mt-4 border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="text-orange-800 text-lg">Debug de Conexión</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-orange-700 space-y-1">
-              <p><strong>Estado:</strong> No conectado al servidor Proxmox</p>
-              <p><strong>URL:</strong> https://pve.triexpertservice.com:8006</p>
-              <p><strong>Node:</strong> pve</p>
-              <p><strong>Token:</strong> root@pam!server</p>
-              <hr className="my-2" />
-              <p className="text-red-600"><strong>Configurar en Supabase Dashboard:</strong></p>
-              <p className="font-mono text-xs">Settings → Edge Functions → Environment Variables</p>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <DollarSign className="h-5 w-5 mr-2" />
+                  Órdenes Recientes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {orders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No hay órdenes registradas</p>
+                    </div>
+                  ) : (
+                    orders.map((order) => (
+                      <div key={order.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-medium text-gray-900">${order.total_amount}</h4>
+                            <p className="text-sm text-gray-600">{order.user_email}</p>
+                            <p className="text-xs text-blue-600">{order.vm_spec_name}</p>
+                          </div>
+                          {getStatusBadge(order.status)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(order.created_at).toLocaleString('es-ES')}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'settings':
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Configuración del Sistema</h1>
+              <p className="text-gray-600">Ajustes generales de la plataforma</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            {/* System Controls */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-orange-600">
+                  <Settings className="h-5 w-5 mr-2" />
+                  Controles del Sistema
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => alert('Función de mantenimiento en desarrollo')}
+                    className="flex items-center justify-center"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Modo Mantenimiento
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      manualRefresh();
+                    }}
+                    disabled={refreshing}
+                    className="flex items-center justify-center"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    Actualizar Todo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => alert('Función de backup en desarrollo')}
+                    className="flex items-center justify-center"
+                  >
+                    <HardDrive className="h-4 w-4 mr-2" />
+                    Backup Sistema
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Test Stripe Flow */}
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader>
+                <CardTitle className="text-green-800 flex items-center">
+                  <DollarSign className="h-5 w-5 mr-2" />
+                  Test de Flujo Stripe
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-green-700">
+                    Para probar el flujo completo de Stripe → Webhook → Creación VM automática
+                  </p>
+                  
+                  <Button
+                    onClick={() => window.open('/plans', '_blank')}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    🧪 Ir a Planes VPS (Test Stripe)
+                  </Button>
+                  
+                  <div className="bg-white border border-green-200 rounded p-3 text-xs text-green-700">
+                    <strong>Flujo de Testing:</strong><br />
+                    1. Ir a Planes VPS<br />
+                    2. Comprar cualquier plan con Stripe (modo test)<br />
+                    3. Webhook debería crear VM automáticamente<br />
+                    4. VM aparecerá en este panel admin
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-gray-500">Sección en desarrollo</p>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <AdminSidebar currentSection={currentSection} onSectionChange={setCurrentSection} />
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 }
