@@ -12,7 +12,8 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  RefreshCw
+  RefreshCw,
+  FileText
 } from 'lucide-react';
 
 interface Subscription {
@@ -86,7 +87,6 @@ export function UserBilling() {
     }
   };
 
-  const getProductName = (priceId: string) => {
   const getProductName = (priceId: string | null) => {
     if (!priceId) {
       return 'Plan Desconocido';
