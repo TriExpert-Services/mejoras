@@ -151,7 +151,7 @@ async function provisionLXC(orderId: string, templateId?: number) {
       password: rootPassword,
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
-      rootfs: order.vm_specs.disk_gb, // Disk size in GB
+      disk: `${order.vm_specs.disk_gb}G`,
       net0: `name=eth0,bridge=vmbr0,ip=${ipAddress}/24,gw=10.0.0.1`,
       nameserver: '8.8.8.8',
       searchdomain: 'local',

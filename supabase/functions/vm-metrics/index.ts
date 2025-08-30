@@ -162,7 +162,7 @@ async function provisionVM(orderId: string, templateId?: number) {
       password: rootPassword,
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
-      rootfs: order.vm_specs.disk_gb.toString(), // Disk size in GB
+      disk: `${order.vm_specs.disk_gb}G`,
       net0: 'name=eth0,bridge=vmbr0,ip=dhcp',
       unprivileged: '1',
       features: 'nesting=1',
