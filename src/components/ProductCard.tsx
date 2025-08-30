@@ -158,7 +158,7 @@ export function ProductCard({ product, onPurchaseStart, onPurchaseComplete }: Pr
           disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {loading ? 'Procesando...' : `Contratar con ${selectedTemplate?.name || 'SO Seleccionado'}`}
+          {loading ? 'Procesando...' : `Contratar VPS con ${selectedTemplate?.name || 'SO Seleccionado'}`}
         </Button>
       </CardFooter>
     </Card>
