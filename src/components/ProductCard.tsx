@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { TemplateSelector } from './TemplateSelector';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { Product } from '../stripe-config';
+import { templates } from '../template-config';
 import { supabase } from '../lib/supabase';
 import { Server, Cpu, HardDrive, Network } from 'lucide-react';
 
@@ -13,6 +15,10 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onPurchaseStart, onPurchaseComplete }: ProductCardProps) {
   const [loading, setLoading] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(
+    product.defaultTemplate || product.allowedTemplates?.[0] || 101
+  );
 
   const handlePurchase = async () => {
     setLoading(true);
@@ -34,6 +40,7 @@ export function ProductCard({ product, onPurchaseStart, onPurchaseComplete }: Pr
         body: JSON.stringify({
           price_id: product.priceId,
           mode: product.mode,
+          template_id: selectedTemplateId,
           success_url: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: window.location.href,
         }),
@@ -63,6 +70,7 @@ export function ProductCard({ product, onPurchaseStart, onPurchaseComplete }: Pr
     return `$${product.price.toFixed(2)}`;
   };
 
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
   return (
     <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300">
       <CardHeader>
@@ -105,6 +113,43 @@ export function ProductCard({ product, onPurchaseStart, onPurchaseComplete }: Pr
             </div>
           </div>
         )}
+
+        {/* Template Selection */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-medium text-gray-900">Sistema Operativo</h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              {showTemplateSelector ? 'Ocultar' : 'Cambiar'}
+            </Button>
+          </div>
+          
+          {selectedTemplate && (
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">{selectedTemplate.icon}</span>
+                <div>
+                  <p className="font-medium text-sm">{selectedTemplate.name}</p>
+                  <p className="text-xs text-gray-600">{selectedTemplate.description}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {showTemplateSelector && product.allowedTemplates && (
+            <div className="mt-4">
+              <TemplateSelector
+                allowedTemplateIds={product.allowedTemplates}
+                selectedTemplateId={selectedTemplateId}
+                onTemplateChange={setSelectedTemplateId}
+              />
+            </div>
+          )}
+        </div>
       </CardContent>
       
       <CardFooter>
@@ -113,7 +158,7 @@ export function ProductCard({ product, onPurchaseStart, onPurchaseComplete }: Pr
           disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {loading ? 'Procesando...' : 'Contratar Ahora'}
+          {loading ? 'Procesando...' : `Contratar con ${selectedTemplate?.name || 'SO Seleccionado'}`}
         </Button>
       </CardFooter>
     </Card>

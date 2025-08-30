@@ -5,6 +5,8 @@ export interface Product {
   description: string;
   mode: 'payment' | 'subscription';
   price: number;
+  defaultTemplate?: number;
+  allowedTemplates?: number[];
   specs?: {
     cpu: string;
     ram: string;
@@ -21,6 +23,8 @@ export const products: Product[] = [
     description: 'Perfecto para proyectos pequeños y desarrollo',
     mode: 'subscription',
     price: 20.00,
+    defaultTemplate: 101, // Ubuntu 24.04 LTS
+    allowedTemplates: [101, 102, 103, 104, 105], // Ubuntu y Debian
     specs: {
       cpu: '1 vCPU',
       ram: '2 GB RAM',
@@ -35,6 +39,8 @@ export const products: Product[] = [
     description: 'Ideal para sitios web y aplicaciones medianas',
     mode: 'subscription',
     price: 20.00,
+    defaultTemplate: 101, // Ubuntu 24.04 LTS
+    allowedTemplates: [101, 102, 103, 104, 105, 107], // Ubuntu, Debian, AlmaLinux
     specs: {
       cpu: '2 vCPUs',
       ram: '4 GB RAM',
@@ -49,6 +55,8 @@ export const products: Product[] = [
     description: 'Para aplicaciones de alto rendimiento',
     mode: 'subscription',
     price: 24.00,
+    defaultTemplate: 101, // Ubuntu 24.04 LTS
+    allowedTemplates: [101, 102, 103, 104, 105, 107, 108], // Todas las plantillas
     specs: {
       cpu: '4 vCPUs',
       ram: '8 GB RAM',
@@ -63,6 +71,8 @@ export const products: Product[] = [
     description: 'Máximo rendimiento para proyectos empresariales',
     mode: 'subscription',
     price: 50.00,
+    defaultTemplate: 107, // AlmaLinux 9.6 (empresarial)
+    allowedTemplates: [101, 102, 103, 104, 105, 107, 108], // Todas las plantillas
     specs: {
       cpu: '8 vCPUs',
       ram: '16 GB RAM',
@@ -77,6 +87,8 @@ export const products: Product[] = [
     description: 'Solución completa para grandes aplicaciones',
     mode: 'subscription',
     price: 50.00,
+    defaultTemplate: 107, // AlmaLinux 9.6 (empresarial)
+    allowedTemplates: [101, 102, 103, 104, 105, 107, 108], // Todas las plantillas
     specs: {
       cpu: '12 vCPUs',
       ram: '32 GB RAM',

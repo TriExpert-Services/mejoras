@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { TemplateSelector } from './TemplateSelector';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { supabase } from '../lib/supabase';
 import { products } from '../stripe-config';
+import { templates } from '../template-config';
 import { 
   Users, 
   Server, 
@@ -89,6 +91,7 @@ export function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [proxmoxLoading, setProxmoxLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [selectedTemplates, setSelectedTemplates] = useState<Record<string, number>>({});
 
   useEffect(() => {
     // Initial load only
@@ -283,7 +286,7 @@ export function AdminPanel() {
     }
   };
   
-  const handleCreateVM = async (productId: string) => {
+  const handleCreateVM = async (productId: string, templateId?: number) => {
     const actionKey = productId;
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
@@ -294,6 +297,9 @@ export function AdminPanel() {
       // Find product in our config
       const product = products.find(p => p.id === productId);
       if (!product) throw new Error('Producto no encontrado');
+      
+      // Use selected template or default
+      const finalTemplateId = templateId || selectedTemplates[productId] || product.defaultTemplate || 101;
       
       // Get VM spec UUID by name from database
       const { data: vmSpec, error: specError } = await supabase
@@ -309,7 +315,7 @@ export function AdminPanel() {
         .from('orders')
         .insert({
           user_id: session.user.id,
-          stripe_session_id: `manual-admin-${Date.now()}`,
+          stripe_session_id: `manual-admin-${Date.now()}-tpl${finalTemplateId}`,
           vm_spec_id: vmSpec.id, // Use the actual UUID
           status: 'pending',
           total_amount: product.price,
@@ -330,6 +336,7 @@ export function AdminPanel() {
         body: JSON.stringify({
           orderId: order.id,
           action: 'provision',
+          templateId: finalTemplateId,
         }),
       });
 
@@ -338,7 +345,8 @@ export function AdminPanel() {
         throw new Error(errorData.error || 'Error creando VM');
       }
 
-      alert('VM creado exitosamente! Revisa la lista de VPS.');
+      const selectedTemplate = templates.find(t => t.id === finalTemplateId);
+      alert(`VM con ${selectedTemplate?.name || 'plantilla seleccionada'} creado exitosamente! Revisa la lista de VPS.`);
       await fetchAdminStats();
       
     } catch (error: any) {
@@ -642,29 +650,81 @@ export function AdminPanel() {
                 Crear un VPS directamente sin pasar por Stripe (para testing)
               </p>
               
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  onClick={() => handleCreateVM('vps-basic-1')}
-                  disabled={actionLoading['vps-basic-1']}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
-                  <span className="block text-xs">1 CPU • 2GB • 40GB</span>
-                </Button>
+              {/* Quick Create Buttons */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-gray-900">Creación Rápida</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => handleCreateVM('vps-basic-1', 101)} // Ubuntu 24.04
+                    disabled={actionLoading['vps-basic-1']}
+                    className="bg-blue-600 hover:bg-blue-700 flex flex-col h-auto py-3"
+                  >
+                    <span className="font-medium">
+                      {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
+                    </span>
+                    <span className="text-xs opacity-90">1 CPU • 2GB • Ubuntu 24.04</span>
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleCreateVM('vps-premium-1', 107)} // AlmaLinux
+                    disabled={actionLoading['vps-premium-1']}
+                    className="bg-purple-600 hover:bg-purple-700 flex flex-col h-auto py-3"
+                  >
+                    <span className="font-medium">
+                      {actionLoading['vps-premium-1'] ? 'Creando...' : 'VPS Premium'}
+                    </span>
+                    <span className="text-xs opacity-90">4 CPU • 8GB • AlmaLinux</span>
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Advanced Template Selection */}
+              <div className="border-t pt-6">
+                <h4 className="font-medium text-gray-900 mb-4">Crear con Sistema Operativo Personalizado</h4>
                 
-                <Button
-                  onClick={() => handleCreateVM('vps-premium-1')}
-                  disabled={actionLoading['vps-premium-1']}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {actionLoading['vps-premium-1'] ? 'Creando...' : 'VPS Premium'}
-                  <span className="block text-xs">4 CPU • 8GB • 160GB</span>
-                </Button>
+                <div className="space-y-4">
+                  <TemplateSelector
+                    allowedTemplateIds={[101, 102, 103, 104, 105, 107, 108]}
+                    selectedTemplateId={selectedTemplates['custom'] || 101}
+                    onTemplateChange={(templateId) => 
+                      setSelectedTemplates(prev => ({ ...prev, custom: templateId }))
+                    }
+                  />
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <Button
+                      onClick={() => handleCreateVM('vps-basic-1', selectedTemplates['custom'] || 101)}
+                      disabled={actionLoading['vps-basic-1']}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {actionLoading['vps-basic-1'] ? 'Creando...' : 'Básico'}
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleCreateVM('vps-premium-1', selectedTemplates['custom'] || 101)}
+                      disabled={actionLoading['vps-premium-1']}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {actionLoading['vps-premium-1'] ? 'Creando...' : 'Premium'}
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleCreateVM('vps-enterprise-1', selectedTemplates['custom'] || 101)}
+                      disabled={actionLoading['vps-enterprise-1']}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {actionLoading['vps-enterprise-1'] ? 'Creando...' : 'Enterprise'}
+                    </Button>
+                  </div>
+                </div>
               </div>
               
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <p className="text-xs text-yellow-700">
-                  <strong>Testing:</strong> Estos VPS se crean sin pago, solo para pruebas de administrador
+                  <strong>Testing:</strong> Estos VPS se crean sin pago. Selecciona el SO y especificaciones deseadas.
                 </p>
               </div>
             </div>

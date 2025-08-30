@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
     }
 
     const { orderId, action } = await req.json();
+    const { orderId, action, templateId } = await req.json();
 
     if (!orderId) {
       return new Response(
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'provision':
-        result = await provisionVM(orderId);
+        result = await provisionVM(orderId, templateId);
         break;
       case 'start':
         result = await controlVM(orderId, 'start');
@@ -70,8 +71,12 @@ Deno.serve(async (req) => {
   }
 });
 
-async function provisionVM(orderId: string) {
+async function provisionVM(orderId: string, templateId?: number) {
   console.log(`Starting VM provisioning for order: ${orderId}`);
+  
+  // Use provided template or default
+  const finalTemplateId = templateId || parseInt(Deno.env.get('PVE_TEMPLATE_ID') || '101');
+  console.log(`Using template ID: ${finalTemplateId}`);
 
   // Get order details
   const { data: order, error: orderError } = await supabase
@@ -145,10 +150,6 @@ async function provisionVM(orderId: string) {
       throw new Error(`Failed to create VM record: ${vmError?.message}`);
     }
 
-    // Get template ID from environment or use default
-    const templateId = Deno.env.get('PVE_TEMPLATE_ID') || '103'; // Ubuntu 24.04
-    console.log(`Using template ID: ${templateId}`);
-    
     // Call Proxmox API to create VM
     const proxmoxResult = await callProxmoxAPI('clone', undefined, {
       vmid,
@@ -156,7 +157,7 @@ async function provisionVM(orderId: string) {
       cores: order.vm_specs.cpu_cores,
       memory: order.vm_specs.ram_gb * 1024, // Convert GB to MB
       disk: order.vm_specs.disk_gb,
-      template: parseInt(templateId),
+      template: finalTemplateId,
       node: 'pve',
       password: rootPassword,
       ipAddress,
@@ -220,6 +221,7 @@ async function provisionVM(orderId: string) {
       proxmoxVmId: vmid,
       status: 'running',
       ipAddress,
+      templateId: finalTemplateId,
       credentials: {
         ip: ipAddress,
         username: 'root',

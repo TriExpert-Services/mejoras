@@ -173,8 +173,10 @@ async function handleEvent(event: Stripe.Event) {
           throw new Error(`Failed to create order: ${orderError?.message}`);
         }
 
-         await triggerVMProvisioning(order.id);
-        EdgeRuntime.waitUntil(triggerVMProvisioning(order.id));
+        // Get template ID from session metadata
+        const templateId = session.metadata?.template_id ? parseInt(session.metadata.template_id) : 101;
+        
+        EdgeRuntime.waitUntil(triggerVMProvisioning(order.id, templateId));
 
         console.info(`Created order ${order.id} and triggered VM provisioning`);
 
@@ -185,7 +187,7 @@ async function handleEvent(event: Stripe.Event) {
   }
 }
 
-async function triggerVMProvisioning(orderId: string) {
+async function triggerVMProvisioning(orderId: string, templateId?: number) {
   try {
     const provisionUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/vm-provisioner`;
     
@@ -198,6 +200,7 @@ async function triggerVMProvisioning(orderId: string) {
       body: JSON.stringify({
         orderId,
         action: 'provision',
+        templateId,
       }),
     });
 
@@ -207,10 +210,10 @@ async function triggerVMProvisioning(orderId: string) {
     }
 
     const result = await response.json();
-    console.log(`VM provisioning triggered successfully for order ${orderId}:`, result);
+    console.log(`VM provisioning triggered successfully for order ${orderId} with template ${templateId}:`, result);
 
   } catch (error: any) {
-    console.error(`Failed to trigger VM provisioning for order ${orderId}:`, error);
+    console.error(`Failed to trigger VM provisioning for order ${orderId} with template ${templateId}:`, error);
     
     // Update order status to failed
     await supabase
