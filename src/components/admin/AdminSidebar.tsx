@@ -8,7 +8,7 @@ import { VNCViewer } from '../VNCViewer';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { 
   Server, 
   Play, 
