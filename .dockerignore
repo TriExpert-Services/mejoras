@@ -4,13 +4,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Build output
-dist
+# Build output (keeping dist for inspection)
 build
 
-# Environment files
-.env*
-!.env.example
+# Environment files (keeping .env.production for reference)
+.env.local
+.env.development
 
 # Git
 .git
@@ -36,7 +35,7 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage directory
 coverage
 
 # Dependencies
@@ -54,15 +53,22 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# Docker
-Dockerfile
-docker-compose*.yml
-.dockerignore
-
-# Supabase local
+# Supabase local development
 .supabase
 
 # Backup files
 *.backup
 *.bak
 *.tmp
+
+# Documentation that's not needed in production
+README.md
+DEPLOY.md
+Makefile
+
+# Development Docker files
+docker-compose.override.yml
+docker-compose.prod.yml
+
+# Development configurations
+.env.example
