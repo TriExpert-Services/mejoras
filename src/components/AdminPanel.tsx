@@ -847,7 +847,6 @@ export function AdminPanel() {
                         <div className="flex items-center justify-between text-sm text-gray-300">
                           <span>{vm.cpu_cores} vCPU • {vm.ram_gb}GB RAM</span>
                           <div className="flex gap-2">
-                            {vm.status === 'stopped' && vm.status !== 'suspended' && (
                             {vm.status === 'stopped' && (
                               <Button
                                 variant="ghost"
@@ -860,7 +859,6 @@ export function AdminPanel() {
                                 <Play className="h-3 w-3" />
                               </Button>
                             )}
-                            {vm.status === 'running' && vm.status !== 'suspended' && (
                             {vm.status === 'running' && (
                               <Button
                                 variant="ghost"
