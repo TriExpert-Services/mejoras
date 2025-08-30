@@ -100,8 +100,6 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
       setError(null);
 
     } catch (error: any) {
-      console.error('Error fetching VM metrics:', error);
-      
       // Handle VM not found error gracefully
       if (error.message === 'VM not found') {
         setVmPermanentlyGone(true);
@@ -112,6 +110,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
         return;
       }
       
+      console.error('Error fetching VM metrics:', error);
       setError(error.message);
     } finally {
       setRefreshing(false);
