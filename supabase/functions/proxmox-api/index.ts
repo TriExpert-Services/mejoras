@@ -371,6 +371,7 @@ async function getProxmoxStats(config: any) {
       // Memory in GB  
       memory_used: nodeData?.memory ? (nodeData.memory.used / (1024 * 1024 * 1024)) : 0,
       memory_total: nodeData?.memory ? (nodeData.memory.total / (1024 * 1024 * 1024)) : 32,
+      memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 : 0,
       
       // Storage in GB
       storage_used: totalStorageUsed,
@@ -422,7 +423,7 @@ async function makeProxmoxRequest(config: any, endpoint: string, method: string 
       console.error(`Proxmox API error [${response.status}]:`, errorText);
       throw new Error(`Proxmox API error [${response.status}]: ${errorText}`);
     }
-      memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 :
+
     const data = await response.json();
     console.log('Proxmox response data:', data);
     
@@ -444,6 +445,5 @@ function formatUptime(seconds: number): string {
     return `${hours}h ${minutes}m`;
   } else {
     return `${minutes}m`;
-    }
   }
 }
