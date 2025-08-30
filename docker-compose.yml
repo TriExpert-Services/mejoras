@@ -1,25 +1,26 @@
+# EasyPanel optimized Docker Compose configuration
 version: '3.8'
 
 services:
-  # Main React application
   app:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
-        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
-    container_name: vps-platform-app
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-https://bhnilgmmzedmhhmdasrn.supabase.co}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJobmlsZ21temVkbWhobWRhc3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMDU2MTQsImV4cCI6MjA2OTY4MTYxNH0.TIdQqw4_2yGfe8NCCS05OwgU6SQmt5MCTdtB1E92NBk}
+    container_name: vps-proxmox-platform
     ports:
       - "80:80"
     environment:
       - NODE_ENV=production
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 30s
+    labels:
+      - "com.easypanel.service=vps-platform"
+      - "com.easypanel.expose=true"
