@@ -907,6 +907,12 @@ export function AdminPanel() {
       case 'templates':
         return <TemplateManagement />;
 
+      case 'pricing':
+        return <PriceManagement />;
+
+      case 'legal':
+        return <LegalManagement />;
+
       case 'orders':
         return (
           <div className="space-y-8">
