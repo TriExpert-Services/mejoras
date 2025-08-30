@@ -19,7 +19,7 @@ interface Subscription {
   customer_id: string;
   subscription_id: string;
   subscription_status: string;
-  price_id: string;
+  price_id: string | null;
   current_period_start: number;
   current_period_end: number;
   cancel_at_period_end: boolean;
@@ -87,6 +87,10 @@ export function UserBilling() {
   };
 
   const getProductName = (priceId: string) => {
+  const getProductName = (priceId: string | null) => {
+    if (!priceId) {
+      return 'Plan Desconocido';
+    }
     const product = products.find(p => p.priceId === priceId);
     return product?.name || `Plan ${priceId.substring(0, 10)}...`;
   };
