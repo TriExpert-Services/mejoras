@@ -72,17 +72,31 @@ Deno.serve(async (req) => {
       throw new Error(proxmoxResult.error || 'Failed to fetch Proxmox metrics');
     }
 
+    // Extract Proxmox status data
+    const proxmoxData = proxmoxResult.data || {};
+    
     // Format response for VMMetrics interface
     const metrics = {
-      id: vmId,
-      name: vm.name,
+      vm_id: vmId,
+      vm_name: vm.name,
+      vm_spec: 'VPS', // Simplified
       status: vm.status,
-      ipAddress: vm.ip_address || 'Not assigned',
-      cpuUsage: proxmoxResult.data?.cpu_usage_percent || 0,
-      memoryUsage: proxmoxResult.data?.memory_usage_percent || 0,
-      diskUsage: proxmoxResult.data?.disk_usage_percent || 0,
-      uptime: proxmoxResult.data?.uptime || 'Unknown',
-      lastUpdated: new Date().toISOString(),
+      running: vm.status === 'running',
+      cpu_usage: (proxmoxData.cpu || 0) * 100, // Convert to percentage
+      memory_used_mb: proxmoxData.mem ? Math.round(proxmoxData.mem / (1024 * 1024)) : 0,
+      memory_total_mb: proxmoxData.maxmem ? Math.round(proxmoxData.maxmem / (1024 * 1024)) : vm.ram_gb * 1024,
+      memory_usage_percent: proxmoxData.mem && proxmoxData.maxmem ? (proxmoxData.mem / proxmoxData.maxmem) * 100 : 0,
+      disk_used_gb: proxmoxData.disk ? Math.round(proxmoxData.disk / (1024 * 1024 * 1024)) : 0,
+      disk_total_gb: vm.disk_gb,
+      disk_usage_percent: proxmoxData.disk ? (proxmoxData.disk / (vm.disk_gb * 1024 * 1024 * 1024)) * 100 : 0,
+      network_in_mb: proxmoxData.netin ? Math.round(proxmoxData.netin / (1024 * 1024)) : 0,
+      network_out_mb: proxmoxData.netout ? Math.round(proxmoxData.netout / (1024 * 1024)) : 0,
+      uptime: proxmoxData.uptime || 0,
+      last_updated: new Date().toISOString(),
+      cpu_cores: vm.cpu_cores,
+      ram_gb: vm.ram_gb,
+      disk_gb: vm.disk_gb,
+      ip_address: vm.ip_address || 'Not assigned',
     };
 
     return new Response(
