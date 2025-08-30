@@ -10,53 +10,29 @@ interface VNCViewerProps {
   onClose: () => void;
 }
 
-declare global {
-  interface Window {
-    RFB: any;
-  }
-}
-
 export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
   const vncRef = useRef<HTMLDivElement>(null);
   const rfbRef = useRef<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [noVNCReady, setNoVNCReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionInfo, setConnectionInfo] = useState<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    // Check if noVNC is already loaded
-    if (window.RFB) {
-      setNoVNCReady(true);
-    } else {
-      // Dynamically load noVNC if not available
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/lib/rfb.js';
-      script.onload = () => {
-        setNoVNCReady(true);
-      };
-      script.onerror = () => {
-        setError('Failed to load noVNC library');
-      };
-      document.head.appendChild(script);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Auto-connect when noVNC is ready
-    if (noVNCReady) {
+    // Auto-connect when component mounts
+    const timer = setTimeout(() => {
       connectToVNC();
-    }
+    }, 500); // Small delay to ensure noVNC is loaded
     
     return () => {
+      clearTimeout(timer);
       // Cleanup RFB connection when component unmounts
       if (rfbRef.current) {
         rfbRef.current.disconnect();
       }
     };
-  }, [noVNCReady]);
+  }, []);
 
   const connectToVNC = async () => {
     if (isConnecting || isConnected) return;
@@ -65,6 +41,17 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
     setError(null);
 
     try {
+      // Wait for noVNC to be available
+      let attempts = 0;
+      while (!window.RFB && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (!window.RFB) {
+        throw new Error('noVNC library failed to load. Please refresh the page.');
+      }
+
       // Get VNC connection info from Proxmox
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
