@@ -64,6 +64,7 @@ export function VMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [vncViewer, setVncViewer] = useState<{ vmId: string; vmName: string } | null>(null);
 
   useEffect(() => {
     const setupComponent = async () => {
