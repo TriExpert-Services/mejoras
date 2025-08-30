@@ -632,7 +632,7 @@ export function VMDashboard() {
                       Gestionar Llaves SSH
                     </Button>
                   </div>
-                  
+
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h4 className="font-medium text-yellow-900 mb-2">Firewall</h4>
                     <p className="text-sm text-yellow-700 mb-3">
