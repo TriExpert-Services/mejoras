@@ -124,6 +124,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
       console.error('Error in fetchMetrics:', error);
       // Handle VM not found error gracefully
       if (error.message === 'VM not found') {
+        console.info('VM not found - component will be hidden');
         setVmPermanentlyGone(true);
         if (intervalId) {
           clearInterval(intervalId);
