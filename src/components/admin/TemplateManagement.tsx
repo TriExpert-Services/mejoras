@@ -19,15 +19,18 @@ import {
 
 interface OSTemplate {
   id: string;
+  template_id: number;
   name: string;
-  os_type: string;
+  os: string;
   version: string;
   description: string;
-  icon_emoji: string;
-  ct_template_path: string;
+  icon: string;
+  color: string;
+  ct_template: string;
   is_active: boolean;
-  is_default: boolean;
-  sort_order: number;
+  min_cpu: number;
+  min_ram_gb: number;
+  min_disk_gb: number;
   created_at: string;
   updated_at: string;
 }
@@ -39,24 +42,28 @@ export function TemplateManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newTemplate, setNewTemplate] = useState({
+    template_id: 0,
     name: '',
-    os_type: 'ubuntu',
+    os: 'ubuntu',
     version: '',
     description: '',
-    icon_emoji: '🟠',
-    ct_template_path: '',
-    sort_order: 100
+    icon: '🟠',
+    color: 'orange',
+    ct_template: '',
+    min_cpu: 1,
+    min_ram_gb: 1,
+    min_disk_gb: 20
   });
 
   const osTypes = [
-    { value: 'ubuntu', label: 'Ubuntu', emoji: '🟠' },
-    { value: 'debian', label: 'Debian', emoji: '🔴' },
-    { value: 'almalinux', label: 'AlmaLinux', emoji: '🔵' },
-    { value: 'rocky', label: 'Rocky Linux', emoji: '🟢' },
-    { value: 'centos', label: 'CentOS', emoji: '🟡' },
-    { value: 'fedora', label: 'Fedora', emoji: '🔵' },
-    { value: 'alpine', label: 'Alpine', emoji: '⚪' },
-    { value: 'arch', label: 'Arch Linux', emoji: '🔷' }
+    { value: 'ubuntu', label: 'Ubuntu', emoji: '🟠', color: 'orange' },
+    { value: 'debian', label: 'Debian', emoji: '🔴', color: 'red' },
+    { value: 'almalinux', label: 'AlmaLinux', emoji: '🔵', color: 'blue' },
+    { value: 'rocky', label: 'Rocky Linux', emoji: '🟢', color: 'green' },
+    { value: 'centos', label: 'CentOS', emoji: '🟡', color: 'yellow' },
+    { value: 'fedora', label: 'Fedora', emoji: '🔵', color: 'blue' },
+    { value: 'alpine', label: 'Alpine', emoji: '⚪', color: 'gray' },
+    { value: 'arch', label: 'Arch Linux', emoji: '🔷', color: 'indigo' }
   ];
 
   useEffect(() => {
@@ -66,9 +73,9 @@ export function TemplateManagement() {
   const fetchTemplates = async () => {
     try {
       const { data, error } = await supabase
-        .from('os_templates')
+        .from('custom_templates')
         .select('*')
-        .order('sort_order', { ascending: true });
+        .order('template_id', { ascending: true });
 
       if (error) throw error;
       setTemplates(data || []);
@@ -84,32 +91,35 @@ export function TemplateManagement() {
       setError(null);
       
       // Validate inputs
-      if (!newTemplate.name || !newTemplate.version || !newTemplate.ct_template_path) {
-        throw new Error('Nombre, versión y ruta de plantilla son obligatorios');
+      if (!newTemplate.name || !newTemplate.version || !newTemplate.ct_template || !newTemplate.template_id) {
+        throw new Error('Nombre, ID, versión y ruta de plantilla son obligatorios');
       }
 
       const { data, error } = await supabase
-        .from('os_templates')
+        .from('custom_templates')
         .insert([{
           ...newTemplate,
-          is_active: true,
-          is_default: false
+          is_active: true
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      setTemplates(prev => [...prev, data].sort((a, b) => a.sort_order - b.sort_order));
+      setTemplates(prev => [...prev, data].sort((a, b) => a.template_id - b.template_id));
       setShowCreateForm(false);
       setNewTemplate({
+        template_id: 0,
         name: '',
-        os_type: 'ubuntu',
+        os: 'ubuntu',
         version: '',
         description: '',
-        icon_emoji: '🟠',
-        ct_template_path: '',
-        sort_order: 100
+        icon: '🟠',
+        color: 'orange',
+        ct_template: '',
+        min_cpu: 1,
+        min_ram_gb: 1,
+        min_disk_gb: 20
       });
 
     } catch (error: any) {
@@ -120,7 +130,7 @@ export function TemplateManagement() {
   const handleToggleActive = async (templateId: string, isActive: boolean) => {
     try {
       const { error } = await supabase
-        .from('os_templates')
+        .from('custom_templates')
         .update({ is_active: !isActive, updated_at: new Date().toISOString() })
         .eq('id', templateId);
 
@@ -134,31 +144,6 @@ export function TemplateManagement() {
     }
   };
 
-  const handleSetDefault = async (templateId: string) => {
-    try {
-      // First, remove default from all templates
-      await supabase
-        .from('os_templates')
-        .update({ is_default: false })
-        .neq('id', templateId);
-
-      // Then set this one as default
-      const { error } = await supabase
-        .from('os_templates')
-        .update({ is_default: true, updated_at: new Date().toISOString() })
-        .eq('id', templateId);
-
-      if (error) throw error;
-
-      setTemplates(prev => prev.map(template => ({
-        ...template,
-        is_default: template.id === templateId
-      })));
-    } catch (error: any) {
-      setError(error.message);
-    }
-  };
-
   const handleDeleteTemplate = async (templateId: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar esta plantilla?')) {
       return;
@@ -166,7 +151,7 @@ export function TemplateManagement() {
 
     try {
       const { error } = await supabase
-        .from('os_templates')
+        .from('custom_templates')
         .delete()
         .eq('id', templateId);
 
@@ -232,6 +217,16 @@ export function TemplateManagement() {
           <CardContent>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium mb-2">ID de Plantilla</label>
+                <Input
+                  type="number"
+                  value={newTemplate.template_id}
+                  onChange={(e) => setNewTemplate(prev => ({ ...prev, template_id: parseInt(e.target.value) || 0 }))}
+                  placeholder="ej: 111"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-2">Nombre</label>
                 <Input
                   value={newTemplate.name}
@@ -243,13 +238,14 @@ export function TemplateManagement() {
               <div>
                 <label className="block text-sm font-medium mb-2">Tipo de SO</label>
                 <select
-                  value={newTemplate.os_type}
+                  value={newTemplate.os}
                   onChange={(e) => {
                     const selectedOS = osTypes.find(os => os.value === e.target.value);
                     setNewTemplate(prev => ({ 
                       ...prev, 
-                      os_type: e.target.value,
-                      icon_emoji: selectedOS?.emoji || '🟠'
+                      os: e.target.value,
+                      icon: selectedOS?.emoji || '🟠',
+                      color: selectedOS?.color || 'orange'
                     }));
                   }}
                   className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md"
@@ -271,16 +267,6 @@ export function TemplateManagement() {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-2">Icono</label>
-                <Input
-                  value={newTemplate.icon_emoji}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, icon_emoji: e.target.value }))}
-                  placeholder="🟠"
-                  maxLength={2}
-                />
-              </div>
-              
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-2">Descripción</label>
                 <Input
@@ -293,19 +279,29 @@ export function TemplateManagement() {
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-2">Ruta de Plantilla CT</label>
                 <Input
-                  value={newTemplate.ct_template_path}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, ct_template_path: e.target.value }))}
+                  value={newTemplate.ct_template}
+                  onChange={(e) => setNewTemplate(prev => ({ ...prev, ct_template: e.target.value }))}
                   placeholder="ej: local:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Orden</label>
+                <label className="block text-sm font-medium mb-2">CPU Mínimo</label>
                 <Input
                   type="number"
-                  value={newTemplate.sort_order}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, sort_order: parseInt(e.target.value) }))}
-                  placeholder="100"
+                  value={newTemplate.min_cpu}
+                  onChange={(e) => setNewTemplate(prev => ({ ...prev, min_cpu: parseInt(e.target.value) || 1 }))}
+                  placeholder="1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">RAM Mínimo (GB)</label>
+                <Input
+                  type="number"
+                  value={newTemplate.min_ram_gb}
+                  onChange={(e) => setNewTemplate(prev => ({ ...prev, min_ram_gb: parseInt(e.target.value) || 1 }))}
+                  placeholder="1"
                 />
               </div>
             </div>
@@ -343,18 +339,19 @@ export function TemplateManagement() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <span className="text-2xl">{template.icon_emoji}</span>
+                    <span className="text-2xl">{template.icon}</span>
                     <div>
                       <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                        {template.name}
-                        {template.is_default && (
-                          <Badge variant="warning" className="text-xs">
-                            Por Defecto
-                          </Badge>
-                        )}
+                        {template.name} 
+                        <Badge variant="outline" className="text-xs">
+                          ID: {template.template_id}
+                        </Badge>
                       </h3>
                       <p className="text-sm text-gray-600">{template.description}</p>
-                      <p className="text-xs text-gray-500 font-mono">{template.ct_template_path}</p>
+                      <p className="text-xs text-gray-500 font-mono">{template.ct_template}</p>
+                      <p className="text-xs text-blue-600">
+                        Min: {template.min_cpu} CPU • {template.min_ram_gb}GB RAM • {template.min_disk_gb}GB Disk
+                      </p>
                     </div>
                   </div>
                   
@@ -369,16 +366,6 @@ export function TemplateManagement() {
                     )}
                     
                     <div className="flex gap-1">
-                      {!template.is_default && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSetDefault(template.id)}
-                        >
-                          Def.
-                        </Button>
-                      )}
-                      
                       <Button
                         variant="outline"
                         size="sm"
