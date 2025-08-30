@@ -188,66 +188,6 @@ export function UserSupport() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Password Change */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Shield className="h-5 w-5 mr-2 text-red-600" />
-            Cambiar Contraseña
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePasswordChange} className="space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-center">
-                  <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-                  <p className="text-red-700 text-sm">{error}</p>
-                </div>
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                  <p className="text-green-700 text-sm">{success}</p>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Nueva Contraseña</label>
-              <Input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                disabled={loading}
-                minLength={6}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Confirmar Contraseña</label>
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repite la nueva contraseña"
-                disabled={loading}
-                minLength={6}
-              />
-            </div>
-
-            <Button type="submit" disabled={loading} className="bg-red-600 hover:bg-red-700">
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Actualizando...' : 'Cambiar Contraseña'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
     </div>
   );
 }
