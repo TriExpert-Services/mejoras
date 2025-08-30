@@ -364,6 +364,7 @@ export function AdminPanel() {
       failed: { variant: 'destructive' as const, text: 'Fallida' },
       online: { variant: 'success' as const, text: 'En Línea' },
       offline: { variant: 'destructive' as const, text: 'Desconectado' },
+      suspended: { variant: 'destructive' as const, text: 'Suspendido' },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || { variant: 'secondary' as const, text: status };
@@ -469,7 +470,7 @@ export function AdminPanel() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   <Button
                     onClick={() => handleCreateVM('vps-basic-1', 101)}
                     disabled={actionLoading['vps-basic-1']}
@@ -834,12 +835,19 @@ export function AdminPanel() {
                             <p className="text-sm text-gray-300">{vm.user_email}</p>
                             <p className="text-xs text-red-400">{vm.vm_spec_name}</p>
                           </div>
-                          {getStatusBadge(vm.status)}
+                          <div className="text-right">
+                            {getStatusBadge(vm.status)}
+                            {vm.status === 'suspended' && (
+                              <p className="text-xs text-red-600 mt-1">
+                                Suspendido por pago
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center justify-between text-sm text-gray-300">
                           <span>{vm.cpu_cores} vCPU • {vm.ram_gb}GB RAM</span>
                           <div className="flex gap-2">
-                            {vm.status === 'stopped' && (
+                            {vm.status === 'stopped' && vm.status !== 'suspended' && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -851,7 +859,7 @@ export function AdminPanel() {
                                 <Play className="h-3 w-3" />
                               </Button>
                             )}
-                            {vm.status === 'running' && (
+                            {vm.status === 'running' && vm.status !== 'suspended' && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -861,6 +869,17 @@ export function AdminPanel() {
                                 className="text-orange-400 hover:text-orange-300 hover:bg-gray-600"
                               >
                                 <Square className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {vm.status === 'suspended' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled
+                                title="VM suspendido por falta de pago"
+                                className="text-red-500"
+                              >
+                                <Monitor className="h-3 w-3" />
                               </Button>
                             )}
                             <Button
@@ -970,6 +989,7 @@ export function AdminPanel() {
                     <Settings className="h-4 w-4 mr-2" />
                     Modo Mantenimiento
                   </Button>
+                  
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -981,6 +1001,7 @@ export function AdminPanel() {
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                     Actualizar Todo
                   </Button>
+                  
                   <Button
                     variant="outline"
                     onClick={() => alert('Función de backup en desarrollo')}
