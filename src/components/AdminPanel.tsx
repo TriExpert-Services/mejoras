@@ -101,10 +101,8 @@ export function AdminPanel() {
   const [selectedTemplates, setSelectedTemplates] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    // Initial load only
     initialFetchData();
     
-    // Auto-refresh every 10 seconds (silent updates)
     const interval = setInterval(() => {
       if (currentSection === 'overview' || currentSection === 'monitoring') {
         silentFetchData();
@@ -114,7 +112,6 @@ export function AdminPanel() {
     return () => clearInterval(interval);
   }, [currentSection]);
 
-  // Initial fetch that shows loading screen
   const initialFetchData = async () => {
     setLoading(true);
     setError(null);
@@ -132,7 +129,6 @@ export function AdminPanel() {
     }
   };
 
-  // Silent fetch that doesn't show loading (for auto-refresh)
   const silentFetchData = async () => {
     try {
       await Promise.all([
@@ -142,11 +138,9 @@ export function AdminPanel() {
       setError(null);
     } catch (error: any) {
       console.error('Silent fetch error:', error);
-      // Don't set error on silent updates to avoid disrupting UI
     }
   };
 
-  // Manual refresh triggered by button
   const manualRefresh = async () => {
     setRefreshing(true);
     try {
@@ -191,7 +185,6 @@ export function AdminPanel() {
   };
 
   const fetchProxmoxStats = async () => {
-    // Only set loading for manual refresh, not auto-refresh
     if (proxmoxStats === null) {
       setProxmoxLoading(true);
     }
@@ -231,7 +224,6 @@ export function AdminPanel() {
       console.error('Error connecting to Proxmox:', error);
       setError(`Error de Proxmox: ${error.message}`);
       
-      // Set disconnected state
       setProxmoxStats({
         status: 'offline',
         connected: false,
@@ -264,7 +256,6 @@ export function AdminPanel() {
         throw new Error('No hay sesión activa');
       }
 
-      // Get VM's order ID for all operations (including delete)
       const vm = vms.find(v => v.id === vmId);
       if (!vm) throw new Error('VM no encontrada');
 
@@ -303,14 +294,11 @@ export function AdminPanel() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No hay sesión activa');
 
-      // Find product in our config
       const product = products.find(p => p.id === productId);
       if (!product) throw new Error('Producto no encontrado');
       
-      // Use selected template or default
       const finalTemplateId = templateId || selectedTemplates[productId] || product.defaultTemplate || 101;
       
-      // Get VM spec UUID by name from database
       const { data: vmSpec, error: specError } = await supabase
         .from('vm_specs')
         .select('id')
@@ -319,13 +307,12 @@ export function AdminPanel() {
 
       if (specError || !vmSpec) throw new Error('Especificación de VM no encontrada en la base de datos');
 
-      // Create manual order with proper UUID
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: session.user.id,
           stripe_session_id: `manual-admin-${Date.now()}-tpl${finalTemplateId}`,
-          vm_spec_id: vmSpec.id, // Use the actual UUID
+          vm_spec_id: vmSpec.id,
           status: 'pending',
           total_amount: product.price,
           currency: 'usd',
@@ -335,7 +322,6 @@ export function AdminPanel() {
 
       if (orderError) throw new Error(`Error creando orden: ${orderError.message}`);
 
-      // Trigger VM provisioning
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vm-provisioner`, {
         method: 'POST',
         headers: {
@@ -398,7 +384,7 @@ export function AdminPanel() {
         <AdminSidebar currentSection={currentSection} onSectionChange={setCurrentSection} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-red-600 mx-auto mb-4" />
+            <RefreshCw className="h-8 w-8 animate-spin text-red-500 mx-auto mb-4" />
             <span className="text-gray-300">Cargando panel de administración...</span>
           </div>
         </div>
@@ -416,7 +402,6 @@ export function AdminPanel() {
               <p className="text-gray-300">Resumen general de la plataforma</p>
             </div>
 
-            {/* Error Alert */}
             {error && (
               <div className="bg-red-900 border border-red-700 rounded-lg p-4">
                 <div className="flex items-center">
@@ -426,7 +411,6 @@ export function AdminPanel() {
               </div>
             )}
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white border-red-600">
                 <CardContent className="p-6">
@@ -477,11 +461,10 @@ export function AdminPanel() {
               </Card>
             </div>
 
-            {/* VM Creation Quick Actions */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center text-white">
-                  <Server className="h-5 w-5 mr-2 text-green-600" />
+                  <Server className="h-5 w-5 mr-2 text-green-500" />
                   Crear VPS Rápido
                 </CardTitle>
               </CardHeader>
@@ -490,7 +473,7 @@ export function AdminPanel() {
                   <Button
                     onClick={() => handleCreateVM('vps-basic-1', 101)}
                     disabled={actionLoading['vps-basic-1']}
-                    className="bg-blue-600 hover:bg-blue-700 flex flex-col h-auto py-3"
+                    className="bg-red-600 hover:bg-red-700 flex flex-col h-auto py-3"
                   >
                     <span className="font-medium">
                       {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
@@ -533,7 +516,6 @@ export function AdminPanel() {
               <p className="text-gray-300">Recursos en tiempo real del servidor Proxmox</p>
             </div>
 
-            {/* Proxmox Server Resources */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -546,7 +528,7 @@ export function AdminPanel() {
                       <Badge variant="secondary">Cargando...</Badge>
                     )}
                     {(loading || proxmoxLoading) && (
-                      <div className="flex items-center text-xs text-blue-600">
+                      <div className="flex items-center text-xs text-red-400">
                         <RefreshCw className="h-3 w-3 animate-spin mr-1" />
                         Actualizando...
                       </div>
@@ -557,6 +539,7 @@ export function AdminPanel() {
                         fetchProxmoxStats();
                       }}
                       disabled={proxmoxLoading}
+                      className="bg-red-600 hover:bg-red-700"
                     >
                       <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                       Actualizar
@@ -568,73 +551,73 @@ export function AdminPanel() {
                 {proxmoxStats && proxmoxStats.connected ? (
                   <div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
+                      <div className="bg-gradient-to-br from-red-900 to-red-800 p-6 rounded-xl border border-red-700">
                         <div className="flex items-center justify-between mb-3">
-                          <Cpu className="h-8 w-8 text-blue-600" />
-                          <span className="text-2xl font-bold text-blue-700">
+                          <Cpu className="h-8 w-8 text-red-400" />
+                          <span className="text-2xl font-bold text-red-300">
                             {proxmoxStats.cpu_usage.toFixed(1)}%
                           </span>
                         </div>
-                        <h4 className="font-semibold text-blue-900 mb-1">CPU Usage</h4>
-                        <p className="text-sm text-blue-600">{proxmoxStats.cpu_cores} cores</p>
-                        <div className="w-full bg-blue-200 rounded-full h-2 mt-3">
+                        <h4 className="font-semibold text-red-200 mb-1">CPU Usage</h4>
+                        <p className="text-sm text-red-300">{proxmoxStats.cpu_cores} cores</p>
+                        <div className="w-full bg-red-800 rounded-full h-2 mt-3">
                           <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                            className="bg-red-500 h-2 rounded-full transition-all duration-300" 
                             style={{ width: `${Math.min(proxmoxStats.cpu_usage, 100)}%` }}
                           ></div>
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
+                      <div className="bg-gradient-to-br from-green-900 to-green-800 p-6 rounded-xl border border-green-700">
                         <div className="flex items-center justify-between mb-3">
-                          <MemoryStick className="h-8 w-8 text-green-600" />
-                          <span className="text-2xl font-bold text-green-700">
+                          <MemoryStick className="h-8 w-8 text-green-400" />
+                          <span className="text-2xl font-bold text-green-300">
                             {proxmoxStats.memory_usage_percent.toFixed(1)}%
                           </span>
                         </div>
-                        <h4 className="font-semibold text-green-900 mb-1">RAM</h4>
-                        <p className="text-sm text-green-600">
+                        <h4 className="font-semibold text-green-200 mb-1">RAM</h4>
+                        <p className="text-sm text-green-300">
                           {proxmoxStats.memory_used.toFixed(1)}GB / {proxmoxStats.memory_total.toFixed(0)}GB
                         </p>
-                        <div className="w-full bg-green-200 rounded-full h-2 mt-3">
+                        <div className="w-full bg-green-800 rounded-full h-2 mt-3">
                           <div 
-                            className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                            className="bg-green-500 h-2 rounded-full transition-all duration-300" 
                             style={{ width: `${Math.min(proxmoxStats.memory_usage_percent, 100)}%` }}
                           ></div>
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
+                      <div className="bg-gradient-to-br from-purple-900 to-purple-800 p-6 rounded-xl border border-purple-700">
                         <div className="flex items-center justify-between mb-3">
-                          <HardDrive className="h-8 w-8 text-purple-600" />
-                          <span className="text-2xl font-bold text-purple-700">
+                          <HardDrive className="h-8 w-8 text-purple-400" />
+                          <span className="text-2xl font-bold text-purple-300">
                             {proxmoxStats.disk_usage_percent.toFixed(1)}%
                           </span>
                         </div>
-                        <h4 className="font-semibold text-purple-900 mb-1">Almacenamiento</h4>
-                        <p className="text-sm text-purple-600">
+                        <h4 className="font-semibold text-purple-200 mb-1">Almacenamiento</h4>
+                        <p className="text-sm text-purple-300">
                           {proxmoxStats.disk_used.toFixed(0)}GB / {proxmoxStats.disk_total.toFixed(0)}GB
                         </p>
-                        <div className="w-full bg-purple-200 rounded-full h-2 mt-3">
+                        <div className="w-full bg-purple-800 rounded-full h-2 mt-3">
                           <div 
-                            className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                            className="bg-purple-500 h-2 rounded-full transition-all duration-300" 
                             style={{ width: `${Math.min(proxmoxStats.disk_usage_percent, 100)}%` }}
                           ></div>
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl">
+                      <div className="bg-gradient-to-br from-orange-900 to-orange-800 p-6 rounded-xl border border-orange-700">
                         <div className="flex items-center justify-between mb-3">
-                          <Activity className="h-8 w-8 text-orange-600" />
+                          <Activity className="h-8 w-8 text-orange-400" />
                           <div className="text-right">
-                            <span className="text-lg font-bold text-orange-700">
+                            <span className="text-lg font-bold text-orange-300">
                               {proxmoxStats.uptime_formatted || formatUptime(proxmoxStats.uptime)}
                             </span>
-                            <p className="text-xs text-orange-600">{proxmoxStats.active_vms}/{proxmoxStats.total_vms} VMs</p>
+                            <p className="text-xs text-orange-400">{proxmoxStats.active_vms}/{proxmoxStats.total_vms} VMs</p>
                           </div>
                         </div>
-                        <h4 className="font-semibold text-orange-900 text-sm mb-1">Red & Tiempo</h4>
-                        <div className="text-xs text-orange-600 space-y-1">
+                        <h4 className="font-semibold text-orange-200 text-sm mb-1">Red & Tiempo</h4>
+                        <div className="text-xs text-orange-300 space-y-1">
                           <div className="flex items-center justify-between">
                             <span>Nodo:</span>
                             <span className="font-medium">{proxmoxStats.node_name}</span>
@@ -646,12 +629,11 @@ export function AdminPanel() {
                         </div>
                         <div className="flex items-center mt-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                          <span className="text-xs text-orange-600">En Línea</span>
+                          <span className="text-xs text-orange-300">En Línea</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Show detailed storage information */}
                     {proxmoxStats.debug?.storage_details && (
                       <div className="mt-8">
                         <h3 className="text-xl font-semibold text-white mb-4">
@@ -672,7 +654,7 @@ export function AdminPanel() {
                               </div>
                               <div className="w-full bg-gray-600 rounded-full h-2">
                                 <div 
-                                  className="bg-blue-600 h-2 rounded-full" 
+                                  className="bg-red-500 h-2 rounded-full" 
                                   style={{ width: `${Math.min(storage.usage_percent, 100)}%` }}
                                 ></div>
                               </div>
@@ -697,6 +679,7 @@ export function AdminPanel() {
                       size="sm"
                       onClick={fetchProxmoxStats}
                       disabled={proxmoxLoading}
+                      className="border-red-600 text-red-400 hover:bg-red-900"
                     >
                       <RefreshCw className={`h-4 w-4 mr-2 ${proxmoxLoading ? 'animate-spin' : ''}`} />
                       Reintentar Conexión
@@ -719,11 +702,10 @@ export function AdminPanel() {
               <p className="text-gray-300">Administra todos los servidores virtuales</p>
             </div>
 
-            {/* VM Creation */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center text-white">
-                  <Server className="h-5 w-5 mr-2 text-green-600" />
+                  <Server className="h-5 w-5 mr-2 text-green-500" />
                   Crear VPS Manualmente
                 </CardTitle>
               </CardHeader>
@@ -733,14 +715,13 @@ export function AdminPanel() {
                     Crear un VPS directamente sin pasar por Stripe (para testing)
                   </p>
                   
-                  {/* Quick Create Buttons */}
                   <div className="space-y-4">
                     <h4 className="font-medium text-white">Creación Rápida</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <Button
-                        onClick={() => handleCreateVM('vps-basic-1', 101)} // Ubuntu 24.04
+                        onClick={() => handleCreateVM('vps-basic-1', 101)}
                         disabled={actionLoading['vps-basic-1']}
-                        className="bg-blue-600 hover:bg-blue-700 flex flex-col h-auto py-3"
+                        className="bg-red-600 hover:bg-red-700 flex flex-col h-auto py-3"
                       >
                         <span className="font-medium">
                           {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
@@ -749,7 +730,7 @@ export function AdminPanel() {
                       </Button>
                       
                       <Button
-                        onClick={() => handleCreateVM('vps-premium-1', 107)} // AlmaLinux
+                        onClick={() => handleCreateVM('vps-premium-1', 107)}
                         disabled={actionLoading['vps-premium-1']}
                         className="bg-purple-600 hover:bg-purple-700 flex flex-col h-auto py-3"
                       >
@@ -761,7 +742,6 @@ export function AdminPanel() {
                     </div>
                   </div>
                   
-                  {/* Advanced Template Selection */}
                   <div className="border-t border-gray-600 pt-6">
                     <h4 className="font-medium text-white mb-4">Crear con Sistema Operativo Personalizado</h4>
                     
@@ -780,6 +760,7 @@ export function AdminPanel() {
                           disabled={actionLoading['vps-basic-1']}
                           variant="outline"
                           size="sm"
+                          className="border-red-600 text-red-400 hover:bg-red-900"
                         >
                           {actionLoading['vps-basic-1'] ? 'Creando...' : 'Básico'}
                         </Button>
@@ -789,6 +770,7 @@ export function AdminPanel() {
                           disabled={actionLoading['vps-premium-1']}
                           variant="outline"
                           size="sm"
+                          className="border-red-600 text-red-400 hover:bg-red-900"
                         >
                           {actionLoading['vps-premium-1'] ? 'Creando...' : 'Premium'}
                         </Button>
@@ -798,6 +780,7 @@ export function AdminPanel() {
                           disabled={actionLoading['vps-enterprise-1']}
                           variant="outline"
                           size="sm"
+                          className="border-red-600 text-red-400 hover:bg-red-900"
                         >
                           {actionLoading['vps-enterprise-1'] ? 'Creando...' : 'Enterprise'}
                         </Button>
@@ -814,7 +797,6 @@ export function AdminPanel() {
               </CardContent>
             </Card>
 
-            {/* VMs Management */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -829,6 +811,7 @@ export function AdminPanel() {
                     disabled={refreshing}
                     variant="outline"
                     size="sm"
+                    className="border-red-600 text-red-400 hover:bg-red-900"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                     Actualizar
@@ -849,7 +832,7 @@ export function AdminPanel() {
                           <div>
                             <h4 className="font-medium text-white">{vm.name}</h4>
                             <p className="text-sm text-gray-300">{vm.user_email}</p>
-                            <p className="text-xs text-blue-400">{vm.vm_spec_name}</p>
+                            <p className="text-xs text-red-400">{vm.vm_spec_name}</p>
                           </div>
                           {getStatusBadge(vm.status)}
                         </div>
@@ -946,7 +929,7 @@ export function AdminPanel() {
                           <div>
                             <h4 className="font-medium text-white">${order.total_amount}</h4>
                             <p className="text-sm text-gray-300">{order.user_email}</p>
-                            <p className="text-xs text-blue-400">{order.vm_spec_name}</p>
+                            <p className="text-xs text-red-400">{order.vm_spec_name}</p>
                           </div>
                           {getStatusBadge(order.status)}
                         </div>
@@ -970,7 +953,6 @@ export function AdminPanel() {
               <p className="text-gray-300">Ajustes generales de la plataforma</p>
             </div>
 
-            {/* System Controls */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center text-orange-400">
@@ -983,7 +965,7 @@ export function AdminPanel() {
                   <Button
                     variant="outline"
                     onClick={() => alert('Función de mantenimiento en desarrollo')}
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center border-red-600 text-red-400 hover:bg-red-900"
                   >
                     <Settings className="h-4 w-4 mr-2" />
                     Modo Mantenimiento
@@ -994,7 +976,7 @@ export function AdminPanel() {
                       manualRefresh();
                     }}
                     disabled={refreshing}
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center border-red-600 text-red-400 hover:bg-red-900"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                     Actualizar Todo
@@ -1002,7 +984,7 @@ export function AdminPanel() {
                   <Button
                     variant="outline"
                     onClick={() => alert('Función de backup en desarrollo')}
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center border-red-600 text-red-400 hover:bg-red-900"
                   >
                     <HardDrive className="h-4 w-4 mr-2" />
                     Backup Sistema
@@ -1011,7 +993,6 @@ export function AdminPanel() {
               </CardContent>
             </Card>
 
-            {/* Test Stripe Flow */}
             <Card className="border-green-700 bg-green-900">
               <CardHeader>
                 <CardTitle className="text-green-400 flex items-center">
