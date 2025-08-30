@@ -206,7 +206,7 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex items-center justify-between text-sm text-gray-400">
                       <span>{vm.cpu_cores} vCPU • {vm.ram_gb}GB RAM • {vm.disk_gb}GB Disk</span>
                       <div className="flex gap-2">
-                        {vm.status === 'stopped' && vm.status !== 'suspended' && (
+                        {vm.status === 'stopped' && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -218,7 +218,7 @@ export const AdminPanel: React.FC = () => {
                             <Play className="h-3 w-3" />
                           </Button>
                         )}
-                        {vm.status === 'running' && vm.status !== 'suspended' && (
+                        {vm.status === 'running' && (
                           <Button
                             variant="ghost"
                             size="sm"
