@@ -6,9 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VPS Proxmox - Servidores Virtuales</title>
     <meta name="description" content="Servidores virtuales potentes con tecnología Proxmox. Plans desde $20/mes con SSD, backups automáticos y soporte 24/7." />
+    <!-- noVNC CSS and JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/novnc@1.5.0/app/styles/base.css">
+    <script src="https://cdn.jsdelivr.net/npm/novnc@1.5.0/core/rfb.js"></script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- noVNC library from reliable CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/novnc@1.5.0/lib/rfb.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
