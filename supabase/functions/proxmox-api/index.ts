@@ -372,3 +372,6 @@ async function getProxmoxStats(config: any) {
       memory_used: nodeData?.memory ? (nodeData.memory.used / (1024 * 1024 * 1024)) : 0,
       memory_total: nodeData?.memory ? (nodeData.memory.total / (1024 * 1024 * 1024)) : 32,
       memory_usage_percent: nodeData?.memory ? (nodeData.memory.used / nodeData.memory.total) * 100 :
+    }
+  }
+}
