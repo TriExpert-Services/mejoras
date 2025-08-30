@@ -77,6 +77,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log(`Generating VNC ticket for VM ${vm.proxmox_vmid} (${vm.name})`);
+
     // Generate VNC ticket from Proxmox
     const vncData = await generateVNCTicket(vm.proxmox_vmid);
 
@@ -107,7 +109,7 @@ Deno.serve(async (req) => {
 
 async function generateVNCTicket(vmid: number) {
   try {
-    console.log(`Generating VNC ticket for VM ${vmid}`);
+    console.log(`Generating VNC ticket for LXC container ${vmid}`);
 
     // Build Proxmox config
     const pveApiUrl = Deno.env.get('PVE_API_URL') || 'https://pve.triexpertservice.com:8006/api2/json';
@@ -125,7 +127,13 @@ async function generateVNCTicket(vmid: number) {
       node: pveNode,
     };
 
-    // Create VNC proxy ticket
+    console.log('Proxmox config:', {
+      host: proxmoxConfig.host,
+      node: proxmoxConfig.node,
+      vmid
+    });
+
+    // Create VNC proxy ticket for LXC container
     const vncUrl = `https://${proxmoxConfig.host}:${proxmoxConfig.port}/api2/json/nodes/${proxmoxConfig.node}/lxc/${vmid}/vncproxy`;
     
     console.log('Creating VNC proxy at:', vncUrl);
@@ -164,8 +172,7 @@ async function generateVNCTicket(vmid: number) {
       node: proxmoxConfig.node,
       vmid: vmid,
       websocket: true,
-      // Construct the VNC websocket URL
-      websocketUrl: `wss://${proxmoxConfig.host}:${proxmoxConfig.port}/api2/json/nodes/${proxmoxConfig.node}/lxc/${vmid}/vncwebsocket?port=${vncData.port}&vncticket=${encodeURIComponent(vncData.ticket)}`
+      // Note: WebSocket URL will be constructed in the frontend
     };
 
   } catch (error: any) {
