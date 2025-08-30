@@ -696,8 +696,10 @@ export function AdminPanel() {
                       onClick={fetchProxmoxStats}
                       disabled={proxmoxLoading}
                     >
+                    >
                       <RefreshCw className={`h-4 w-4 mr-2 ${proxmoxLoading ? 'animate-spin' : ''}`} />
                       Reintentar Conexión
+                    </Button>
                     </Button>
                   </div>
                 )}
@@ -897,6 +899,137 @@ export function AdminPanel() {
                   )}
                 </div>
               </CardContent>
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de VPS</h1>
+              <p className="text-gray-600">Administra todos los servidores virtuales</p>
+            </div>
+
+            {/* VM Creation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Server className="h-5 w-5 mr-2 text-green-600" />
+                  Crear VPS Manualmente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Crear un VPS directamente sin pasar por Stripe (para testing)
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      onClick={() => handleCreateVM('vps-basic-1', 101)}
+                      disabled={actionLoading['vps-basic-1']}
+                      className="bg-blue-600 hover:bg-blue-700 flex flex-col h-auto py-3"
+                    >
+                      <span className="font-medium">
+                        {actionLoading['vps-basic-1'] ? 'Creando...' : 'VPS Básico'}
+                      </span>
+                      <span className="text-xs opacity-90">1 CPU • 2GB • Ubuntu 24.04</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleCreateVM('vps-premium-1', 107)}
+                      disabled={actionLoading['vps-premium-1']}
+                      className="bg-purple-600 hover:bg-purple-700 flex flex-col h-auto py-3"
+                    >
+                      <span className="font-medium">
+                        {actionLoading['vps-premium-1'] ? 'Creando...' : 'VPS Premium'}
+                      </span>
+                      <span className="text-xs opacity-90">4 CPU • 8GB • AlmaLinux</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* VMs Management */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Server className="h-5 w-5 mr-2" />
+                    VPS Activos
+                  </CardTitle>
+                  <Button
+                    onClick={manualRefresh}
+                    disabled={refreshing}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                    Actualizar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {vms.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Server className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No hay VPS creados</p>
+                    </div>
+                  ) : (
+                    vms.map((vm) => (
+                      <div key={vm.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-medium text-gray-900">{vm.name}</h4>
+                            <p className="text-sm text-gray-600">{vm.user_email}</p>
+                            <p className="text-xs text-blue-600">{vm.vm_spec_name}</p>
+                          </div>
+                          {getStatusBadge(vm.status)}
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <span>{vm.cpu_cores} vCPU • {vm.ram_gb}GB RAM</span>
+                          <div className="flex gap-2">
+                            {vm.status === 'stopped' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleVMAction(vm.id, 'start')}
+                                disabled={actionLoading[vm.id]}
+                                title="Iniciar VM"
+                              >
+                                <Play className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {vm.status === 'running' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleVMAction(vm.id, 'stop')}
+                                disabled={actionLoading[vm.id]}
+                                title="Detener VM"
+                              >
+                                <Square className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('¿Estás seguro de que quieres eliminar este VM?')) {
+                                  handleVMAction(vm.id, 'delete');
+                                }
+                              }}
+                              disabled={actionLoading[vm.id]}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Eliminar VM"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
             </Card>
           </div>
         );
@@ -951,6 +1084,10 @@ export function AdminPanel() {
             </Card>
           </div>
         );
+
+      case 'monitoring':
+        // Redirect to overview since monitoring is now included there
+        return renderContent();
 
       case 'settings':
         return (
