@@ -15,7 +15,8 @@ import {
   CreditCard,
   Package,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Copy
 } from 'lucide-react';
 
 interface StripePrice {
