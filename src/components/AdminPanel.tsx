@@ -394,12 +394,12 @@ export function AdminPanel() {
 
   if (loading) {
     return (
-      <div className="flex h-screen">
+      <div className="flex h-screen bg-gray-900">
         <AdminSidebar currentSection={currentSection} onSectionChange={setCurrentSection} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-            <span className="text-gray-600">Cargando panel de administración...</span>
+            <RefreshCw className="h-8 w-8 animate-spin text-red-600 mx-auto mb-4" />
+            <span className="text-gray-300">Cargando panel de administración...</span>
           </div>
         </div>
       </div>
@@ -428,7 +428,7 @@ export function AdminPanel() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white border-red-600">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -440,7 +440,7 @@ export function AdminPanel() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -452,7 +452,7 @@ export function AdminPanel() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-600">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -464,7 +464,7 @@ export function AdminPanel() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-orange-600">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -478,9 +478,9 @@ export function AdminPanel() {
             </div>
 
             {/* VM Creation Quick Actions */}
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center text-white">
                   <Server className="h-5 w-5 mr-2 text-green-600" />
                   Crear VPS Rápido
                 </CardTitle>
@@ -529,15 +529,15 @@ export function AdminPanel() {
         return (
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Monitoreo del Servidor</h1>
-              <p className="text-gray-600">Recursos en tiempo real del servidor Proxmox</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Monitoreo del Servidor</h1>
+              <p className="text-gray-300">Recursos en tiempo real del servidor Proxmox</p>
             </div>
 
             {/* Proxmox Server Resources */}
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
+                  <CardTitle className="flex items-center text-white">
                     <Monitor className="h-5 w-5 mr-2" />
                     Recursos del Servidor Proxmox
                   </CardTitle>
@@ -654,29 +654,29 @@ export function AdminPanel() {
                     {/* Show detailed storage information */}
                     {proxmoxStats.debug?.storage_details && (
                       <div className="mt-8">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                        <h3 className="text-xl font-semibold text-white mb-4">
                           Almacenamientos ({proxmoxStats.debug.storage_details.length})
                         </h3>
                         <div className="grid md:grid-cols-3 gap-4">
                           {proxmoxStats.debug.storage_details.map((storage: any, index: number) => (
-                            <div key={storage.name} className="bg-white p-4 rounded-lg shadow-sm border">
-                              <h4 className="font-medium text-gray-900 mb-2">{storage.name}</h4>
-                              <p className="text-sm text-gray-600 mb-2">Tipo: {storage.type}</p>
-                              <div className="flex justify-between text-sm mb-2">
+                            <div key={storage.name} className="bg-gray-700 p-4 rounded-lg shadow-sm border border-gray-600">
+                              <h4 className="font-medium text-white mb-2">{storage.name}</h4>
+                              <p className="text-sm text-gray-300 mb-2">Tipo: {storage.type}</p>
+                              <div className="flex justify-between text-sm mb-2 text-gray-300">
                                 <span>Usado:</span>
                                 <span>{storage.used_gb.toFixed(1)} GB</span>
                               </div>
-                              <div className="flex justify-between text-sm mb-2">
+                              <div className="flex justify-between text-sm mb-2 text-gray-300">
                                 <span>Total:</span>
                                 <span>{storage.total_gb.toFixed(1)} GB</span>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div className="w-full bg-gray-600 rounded-full h-2">
                                 <div 
                                   className="bg-blue-600 h-2 rounded-full" 
                                   style={{ width: `${Math.min(storage.usage_percent, 100)}%` }}
                                 ></div>
                               </div>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-gray-400 mt-1">
                                 {storage.usage_percent.toFixed(1)}% usado
                               </p>
                             </div>
@@ -688,8 +688,8 @@ export function AdminPanel() {
                 ) : (
                   <div className="text-center py-8">
                     <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="font-medium text-gray-900 mb-2">No se pudo conectar al servidor Proxmox</h3>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <h3 className="font-medium text-white mb-2">No se pudo conectar al servidor Proxmox</h3>
+                    <p className="text-sm text-gray-300 mb-4">
                       Verifica la configuración del servidor en las variables de entorno
                     </p>
                     <Button
@@ -715,27 +715,27 @@ export function AdminPanel() {
         return (
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de VPS</h1>
-              <p className="text-gray-600">Administra todos los servidores virtuales</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Gestión de VPS</h1>
+              <p className="text-gray-300">Administra todos los servidores virtuales</p>
             </div>
 
             {/* VM Creation */}
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center text-white">
                   <Server className="h-5 w-5 mr-2 text-green-600" />
                   Crear VPS Manualmente
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-300 mb-4">
                     Crear un VPS directamente sin pasar por Stripe (para testing)
                   </p>
                   
                   {/* Quick Create Buttons */}
                   <div className="space-y-4">
-                    <h4 className="font-medium text-gray-900">Creación Rápida</h4>
+                    <h4 className="font-medium text-white">Creación Rápida</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <Button
                         onClick={() => handleCreateVM('vps-basic-1', 101)} // Ubuntu 24.04
@@ -762,8 +762,8 @@ export function AdminPanel() {
                   </div>
                   
                   {/* Advanced Template Selection */}
-                  <div className="border-t pt-6">
-                    <h4 className="font-medium text-gray-900 mb-4">Crear con Sistema Operativo Personalizado</h4>
+                  <div className="border-t border-gray-600 pt-6">
+                    <h4 className="font-medium text-white mb-4">Crear con Sistema Operativo Personalizado</h4>
                     
                     <div className="space-y-4">
                       <TemplateSelector
@@ -805,8 +805,8 @@ export function AdminPanel() {
                     </div>
                   </div>
                   
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <p className="text-xs text-yellow-700">
+                  <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3">
+                    <p className="text-xs text-yellow-200">
                       <strong>Nuevo:</strong> Ahora usa contenedores LXC (mucho más rápido). Creación en ~30 segundos.
                     </p>
                   </div>
@@ -815,10 +815,10 @@ export function AdminPanel() {
             </Card>
 
             {/* VMs Management */}
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
+                  <CardTitle className="flex items-center text-white">
                     <Server className="h-5 w-5 mr-2" />
                     VPS Activos
                   </CardTitle>
@@ -839,21 +839,21 @@ export function AdminPanel() {
                 <div className="space-y-4">
                   {vms.length === 0 ? (
                     <div className="text-center py-8">
-                      <Server className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">No hay VPS creados</p>
+                      <Server className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-400">No hay VPS creados</p>
                     </div>
                   ) : (
                     vms.map((vm) => (
-                      <div key={vm.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div key={vm.id} className="bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition-colors border border-gray-600">
                         <div className="flex items-center justify-between mb-2">
                           <div>
-                            <h4 className="font-medium text-gray-900">{vm.name}</h4>
-                            <p className="text-sm text-gray-600">{vm.user_email}</p>
-                            <p className="text-xs text-blue-600">{vm.vm_spec_name}</p>
+                            <h4 className="font-medium text-white">{vm.name}</h4>
+                            <p className="text-sm text-gray-300">{vm.user_email}</p>
+                            <p className="text-xs text-blue-400">{vm.vm_spec_name}</p>
                           </div>
                           {getStatusBadge(vm.status)}
                         </div>
-                        <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center justify-between text-sm text-gray-300">
                           <span>{vm.cpu_cores} vCPU • {vm.ram_gb}GB RAM</span>
                           <div className="flex gap-2">
                             {vm.status === 'stopped' && (
@@ -863,6 +863,7 @@ export function AdminPanel() {
                                 onClick={() => handleVMAction(vm.id, 'start')}
                                 disabled={actionLoading[vm.id]}
                                 title="Iniciar VM"
+                                className="text-green-400 hover:text-green-300 hover:bg-gray-600"
                               >
                                 <Play className="h-3 w-3" />
                               </Button>
@@ -874,6 +875,7 @@ export function AdminPanel() {
                                 onClick={() => handleVMAction(vm.id, 'stop')}
                                 disabled={actionLoading[vm.id]}
                                 title="Detener VM"
+                                className="text-orange-400 hover:text-orange-300 hover:bg-gray-600"
                               >
                                 <Square className="h-3 w-3" />
                               </Button>
@@ -887,7 +889,7 @@ export function AdminPanel() {
                                 }
                               }}
                               disabled={actionLoading[vm.id]}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-400 hover:text-red-300 hover:bg-gray-600"
                               title="Eliminar VM"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -919,13 +921,13 @@ export function AdminPanel() {
         return (
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Órdenes y Pagos</h1>
-              <p className="text-gray-600">Historial completo de transacciones</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Órdenes y Pagos</h1>
+              <p className="text-gray-300">Historial completo de transacciones</p>
             </div>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center text-white">
                   <DollarSign className="h-5 w-5 mr-2" />
                   Órdenes Recientes
                 </CardTitle>
@@ -934,21 +936,21 @@ export function AdminPanel() {
                 <div className="space-y-4">
                   {orders.length === 0 ? (
                     <div className="text-center py-8">
-                      <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">No hay órdenes registradas</p>
+                      <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-400">No hay órdenes registradas</p>
                     </div>
                   ) : (
                     orders.map((order) => (
-                      <div key={order.id} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div key={order.id} className="bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition-colors border border-gray-600">
                         <div className="flex items-center justify-between mb-2">
                           <div>
-                            <h4 className="font-medium text-gray-900">${order.total_amount}</h4>
-                            <p className="text-sm text-gray-600">{order.user_email}</p>
-                            <p className="text-xs text-blue-600">{order.vm_spec_name}</p>
+                            <h4 className="font-medium text-white">${order.total_amount}</h4>
+                            <p className="text-sm text-gray-300">{order.user_email}</p>
+                            <p className="text-xs text-blue-400">{order.vm_spec_name}</p>
                           </div>
                           {getStatusBadge(order.status)}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-400">
                           {new Date(order.created_at).toLocaleString('es-ES')}
                         </div>
                       </div>
@@ -960,22 +962,18 @@ export function AdminPanel() {
           </div>
         );
 
-      case 'monitoring':
-        // Redirect to overview since monitoring is now included there
-        return renderContent();
-
       case 'settings':
         return (
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Configuración del Sistema</h1>
-              <p className="text-gray-600">Ajustes generales de la plataforma</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Configuración del Sistema</h1>
+              <p className="text-gray-300">Ajustes generales de la plataforma</p>
             </div>
 
             {/* System Controls */}
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center text-orange-600">
+                <CardTitle className="flex items-center text-orange-400">
                   <Settings className="h-5 w-5 mr-2" />
                   Controles del Sistema
                 </CardTitle>
@@ -1014,16 +1012,16 @@ export function AdminPanel() {
             </Card>
 
             {/* Test Stripe Flow */}
-            <Card className="border-green-200 bg-green-50">
+            <Card className="border-green-700 bg-green-900">
               <CardHeader>
-                <CardTitle className="text-green-800 flex items-center">
+                <CardTitle className="text-green-400 flex items-center">
                   <DollarSign className="h-5 w-5 mr-2" />
                   Test de Flujo Stripe
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-green-300">
                     Para probar el flujo completo de Stripe → Webhook → Creación VM automática
                   </p>
                   
@@ -1034,7 +1032,7 @@ export function AdminPanel() {
                     🧪 Ir a Planes VPS (Test Stripe)
                   </Button>
                   
-                  <div className="bg-white border border-green-200 rounded p-3 text-xs text-green-700">
+                  <div className="bg-gray-800 border border-green-700 rounded p-3 text-xs text-green-300">
                     <strong>Flujo de Testing:</strong><br />
                     1. Ir a Planes VPS<br />
                     2. Comprar cualquier plan con Stripe (modo test)<br />
@@ -1050,7 +1048,7 @@ export function AdminPanel() {
       default:
         return (
           <div className="flex items-center justify-center h-64">
-            <p className="text-gray-500">Sección en desarrollo</p>
+            <p className="text-gray-400">Sección en desarrollo</p>
           </div>
         );
     }
