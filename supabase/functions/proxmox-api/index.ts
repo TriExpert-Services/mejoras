@@ -81,12 +81,148 @@ Deno.serve(async (req) => {
       hasSecret: !!proxmoxConfig.tokenSecret
     });
 
-    // Get real Proxmox stats
-    const stats = await getProxmoxStats(proxmoxConfig);
+    // Handle different actions based on request method
+    if (req.method === 'GET') {
+      // Get real Proxmox stats
+      const stats = await getProxmoxStats(proxmoxConfig);
+      return new Response(
+        JSON.stringify(stats),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (req.method === 'POST') {
+      const body = await req.json();
+      const { action } = body;
+
+      console.log('Processing action:', action);
+
+      switch (action) {
+        case 'create-lxc': {
+          const { vmid, template, hostname, password, cores, memory, disk, network } = body;
+          
+          console.log('Creating LXC with params:', { vmid, template, hostname, cores, memory, disk });
+          
+          // Create LXC container
+          const createParams = new URLSearchParams({
+            vmid: vmid.toString(),
+            ostemplate: template,
+            hostname: hostname,
+            password: password,
+            cores: cores.toString(),
+            memory: memory.toString(),
+            rootfs: disk.toString(),
+            net0: network || 'name=eth0,bridge=vmbr0,ip=dhcp',
+            unprivileged: '1',
+            features: 'nesting=1',
+            nameserver: '8.8.8.8'
+          });
+
+          const createResult = await makeProxmoxRequest(
+            proxmoxConfig, 
+            `/nodes/${proxmoxConfig.node}/lxc`,
+            'POST',
+            createParams.toString()
+          );
+          
+          console.log('LXC creation result:', createResult);
+          
+          if (createResult) {
+            return new Response(
+              JSON.stringify({ success: true, data: createResult }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          } else {
+            throw new Error('LXC creation returned no data');
+          }
+        }
+
+        case 'start': {
+          const { vmid } = body;
+          const result = await makeProxmoxRequest(
+            proxmoxConfig,
+            `/nodes/${proxmoxConfig.node}/lxc/${vmid}/status/start`,
+            'POST'
+          );
+          return new Response(
+            JSON.stringify({ success: true, data: result }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        case 'stop': {
+          const { vmid } = body;
+          const result = await makeProxmoxRequest(
+            proxmoxConfig,
+            `/nodes/${proxmoxConfig.node}/lxc/${vmid}/status/stop`,
+            'POST'
+          );
+          return new Response(
+            JSON.stringify({ success: true, data: result }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        case 'delete': {
+          const { vmid } = body;
+          const result = await makeProxmoxRequest(
+            proxmoxConfig,
+            `/nodes/${proxmoxConfig.node}/lxc/${vmid}`,
+            'DELETE'
+          );
+          return new Response(
+            JSON.stringify({ success: true, data: result }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        case 'status': {
+          const { vmid } = body;
+          const result = await makeProxmoxRequest(
+            proxmoxConfig,
+            `/nodes/${proxmoxConfig.node}/lxc/${vmid}/status/current`
+          );
+          return new Response(
+            JSON.stringify({ success: true, data: result }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        case 'task-status': {
+          const { upid } = body;
+          const taskId = upid.startsWith('UPID:') ? upid.substring(5) : upid;
+          const result = await makeProxmoxRequest(
+            proxmoxConfig,
+            `/nodes/${proxmoxConfig.node}/tasks/${taskId}/status`
+          );
+          return new Response(
+            JSON.stringify({ success: true, data: result }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        case 'list-templates': {
+          const result = await makeProxmoxRequest(
+            proxmoxConfig,
+            `/nodes/${proxmoxConfig.node}/storage/local/content?content=vztmpl`
+          );
+          return new Response(
+            JSON.stringify({ success: true, data: result }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        default:
+          return new Response(
+            JSON.stringify({ success: false, error: `Unknown action: ${action}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+      }
+    }
 
     return new Response(
-      JSON.stringify(stats),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
@@ -292,8 +428,13 @@ async function makeProxmoxRequest(config: any, endpoint: string, method = 'GET',
   
   const headers: Record<string, string> = {
     'Authorization': `PVEAPIToken=${config.tokenId}=${config.tokenSecret}`,
-    'Content-Type': 'application/json',
   };
+
+  if (method === 'POST' && body) {
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+  } else {
+    headers['Content-Type'] = 'application/json';
+  }
 
   console.log(`Making ${method} request to: ${url}`);
   console.log('Using auth header:', `PVEAPIToken=${config.tokenId}=[SECRET]`);
