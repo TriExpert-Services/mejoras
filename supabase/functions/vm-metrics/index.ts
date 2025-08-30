@@ -29,6 +29,27 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const vmId = url.searchParams.get('vmId');
 
+    // Get the user's auth token from the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userToken = authHeader.replace('Bearer ', '');
+
+    // Verify user is authenticated
+    const { data: { user }, error: getUserError } = await supabase.auth.getUser(userToken);
+
+    if (getUserError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!vmId) {
       return new Response(
         JSON.stringify({ error: 'VM ID is required' }),
@@ -36,11 +57,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get VM details from database
+    // Get VM details from database - ensure user owns this VM
     const { data: vm, error: vmError } = await supabase
       .from('vms')
-      .select('proxmox_vmid, status, ip_address, name')
+      .select('proxmox_vmid, status, ip_address, name, cpu_cores, ram_gb, disk_gb')
       .eq('id', vmId)
+      .eq('user_id', user.id)
       .eq('deleted_at', null)
       .single();
 
@@ -66,7 +88,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Authorization': `Bearer ${userToken}`,
       },
       body: JSON.stringify({
         action: 'status',

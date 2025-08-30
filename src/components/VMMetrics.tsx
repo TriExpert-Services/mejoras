@@ -89,7 +89,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
         },
       });
