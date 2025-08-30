@@ -258,3 +258,5 @@ export function UserBilling() {
         </CardContent>
       </Card>
     </div>
+  );
+}
