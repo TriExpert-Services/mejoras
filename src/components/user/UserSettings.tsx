@@ -16,6 +16,20 @@ import {
   Globe
 } from 'lucide-react';
 
+const formatDate = (dateString: string): string => {
+  try {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return 'N/A';
+  }
+};
+
 export function UserSettings() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
