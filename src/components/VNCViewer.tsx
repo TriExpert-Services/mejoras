@@ -54,6 +54,17 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
       // Cleanup RFB connection when component unmounts
       if (rfbRef.current) {
         rfbRef.current.disconnect();
+      }
+    };
+  }, [noVNCReady]);
+
+  const connectToVNC = async () => {
+    if (isConnecting || isConnected) return;
+    
+    setIsConnecting(true);
+    setError(null);
+
+    try {
       // Get VNC connection info from Proxmox
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
