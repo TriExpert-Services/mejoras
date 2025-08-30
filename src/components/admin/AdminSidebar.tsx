@@ -90,15 +90,15 @@ export function AdminSidebar({ currentSection, onSectionChange }: AdminSidebarPr
   ];
 
   return (
-    <aside className="w-80 bg-white border-r border-gray-200 h-screen overflow-y-auto">
-      <div className="p-6 border-b border-gray-200">
+    <aside className="w-80 bg-gray-800 border-r border-gray-700 h-screen overflow-y-auto">
+      <div className="p-6 border-b border-gray-700">
         <div className="flex items-center">
-          <div className="bg-purple-600 p-2 rounded-lg mr-3">
+          <div className="bg-red-600 p-2 rounded-lg mr-3">
             <Database className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Admin Panel</h2>
-            <p className="text-sm text-gray-600">Panel de Administración</p>
+            <h2 className="text-xl font-bold text-white">Admin Panel</h2>
+            <p className="text-sm text-gray-400">Panel de Administración</p>
           </div>
         </div>
       </div>
@@ -116,38 +116,38 @@ export function AdminSidebar({ currentSection, onSectionChange }: AdminSidebarPr
                 className={cn(
                   "w-full flex items-start p-3 rounded-lg text-left transition-all duration-200 group",
                   isActive 
-                    ? "bg-purple-100 border-purple-500 shadow-sm" 
-                    : "hover:bg-gray-50 border-transparent"
+                    ? "bg-red-900 border-red-600 shadow-sm" 
+                    : "hover:bg-gray-700 border-transparent"
                 )}
               >
                 <Icon className={cn(
                   "h-5 w-5 mt-0.5 mr-3 transition-colors",
                   isActive 
-                    ? "text-purple-600" 
-                    : "text-gray-500 group-hover:text-gray-700"
+                    ? "text-red-400" 
+                    : "text-gray-400 group-hover:text-gray-200"
                 )} />
                 
                 <div className="flex-1 min-w-0">
                   <div className={cn(
                     "font-medium text-sm transition-colors",
                     isActive 
-                      ? "text-purple-900" 
-                      : "text-gray-900 group-hover:text-gray-900"
+                      ? "text-red-100" 
+                      : "text-gray-200 group-hover:text-white"
                   )}>
                     {section.name}
                   </div>
                   <div className={cn(
                     "text-xs mt-1 transition-colors",
                     isActive 
-                      ? "text-purple-700" 
-                      : "text-gray-500 group-hover:text-gray-600"
+                      ? "text-red-200" 
+                      : "text-gray-400 group-hover:text-gray-300"
                   )}>
                     {section.description}
                   </div>
                 </div>
                 
                 {isActive && (
-                  <div className="w-1 h-8 bg-purple-600 rounded-full ml-2"></div>
+                  <div className="w-1 h-8 bg-red-500 rounded-full ml-2"></div>
                 )}
               </button>
             );

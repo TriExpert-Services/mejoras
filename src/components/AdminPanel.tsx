@@ -412,30 +412,30 @@ export function AdminPanel() {
         return (
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel General</h1>
-              <p className="text-gray-600">Resumen general de la plataforma</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Panel General</h1>
+              <p className="text-gray-300">Resumen general de la plataforma</p>
             </div>
 
             {/* Error Alert */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="bg-red-900 border border-red-700 rounded-lg p-4">
                 <div className="flex items-center">
-                  <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-                  <p className="text-red-700">{error}</p>
+                  <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+                  <p className="text-red-200">{error}</p>
                 </div>
               </div>
             )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-blue-100 text-sm">Usuarios Totales</p>
+                      <p className="text-red-100 text-sm">Usuarios Totales</p>
                       <p className="text-3xl font-bold">{stats.totalUsers}</p>
                     </div>
-                    <Users className="h-10 w-10 text-blue-200" />
+                    <Users className="h-10 w-10 text-red-200" />
                   </div>
                 </CardContent>
               </Card>
@@ -1057,7 +1057,7 @@ export function AdminPanel() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-900">
       <AdminSidebar currentSection={currentSection} onSectionChange={setCurrentSection} />
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-6 py-8">

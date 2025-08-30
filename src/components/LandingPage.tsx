@@ -67,11 +67,11 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
 
       {showAuthForm ? (
         /* Auth Form Overlay */
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 pt-20">
+        <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4 pt-20">
           <div className="relative w-full max-w-md">
             <button
               onClick={() => setShowAuthForm(false)}
-              className="absolute -top-4 -right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50"
+              className="absolute -top-4 -right-4 z-10 bg-gray-800 border border-gray-600 rounded-full p-2 shadow-lg hover:bg-gray-700 text-white"
             >
               ×
             </button>
@@ -92,19 +92,19 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
       ) : (
         <div className="pt-16">
           {/* Hero Section */}
-          <section className="relative bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-20">
+          <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-              <div className="bg-blue-600 p-4 rounded-3xl inline-block mb-8">
+              <div className="bg-red-600 p-4 rounded-3xl inline-block mb-8">
                 <Server className="h-16 w-16 text-white" />
               </div>
               
-              <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
-                VPS <span className="text-blue-600">Proxmox</span>
+              <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+                VPS <span className="text-red-500">Proxmox</span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-4xl mx-auto">
-                Servidores virtuales de <span className="text-blue-600 font-semibold">alto rendimiento</span> con 
-                tecnología Proxmox. Aprovisionamiento automático en <span className="text-green-600 font-semibold">menos de 5 minutos</span>.
+              <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto">
+                Servidores virtuales de <span className="text-red-400 font-semibold">alto rendimiento</span> con 
+                tecnología Proxmox. Aprovisionamiento automático en <span className="text-green-400 font-semibold">menos de 5 minutos</span>.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -114,7 +114,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                     setAuthMode('signup');
                     setShowAuthForm(true);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-4"
+                  className="bg-red-600 hover:bg-red-700 text-lg px-8 py-4"
                 >
                   <Play className="h-5 w-5 mr-2" />
                   Comenzar Ahora
@@ -133,42 +133,42 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
                 <div>
-                  <div className="text-3xl font-bold text-blue-600">99.9%</div>
-                  <div className="text-sm text-gray-600">Uptime Garantizado</div>
+                  <div className="text-3xl font-bold text-red-400">99.9%</div>
+                  <div className="text-sm text-gray-400">Uptime Garantizado</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-green-600">&lt;5min</div>
-                  <div className="text-sm text-gray-600">Aprovisionamiento</div>
+                  <div className="text-3xl font-bold text-green-400"><5min</div>
+                  <div className="text-sm text-gray-400">Aprovisionamiento</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-purple-600">24/7</div>
-                  <div className="text-sm text-gray-600">Soporte Técnico</div>
+                  <div className="text-3xl font-bold text-purple-400">24/7</div>
+                  <div className="text-sm text-gray-400">Soporte Técnico</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-orange-600">SSD</div>
-                  <div className="text-sm text-gray-600">Almacenamiento</div>
+                  <div className="text-3xl font-bold text-orange-400">SSD</div>
+                  <div className="text-sm text-gray-400">Almacenamiento</div>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Features Section */}
-          <section className="py-20 bg-white">
+          <section className="py-20 bg-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                   ¿Por qué elegir nuestros VPS?
                 </h2>
-                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                   Tecnología empresarial al alcance de todos los desarrolladores y empresas
                 </p>
               </div>
               
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl">
-                  <Zap className="h-12 w-12 text-blue-600 mb-4" />
-                  <h3 className="text-xl font-bold mb-3">Rendimiento Extremo</h3>
-                  <p className="text-gray-700">
+                <div className="bg-gradient-to-br from-red-900 to-red-800 p-8 rounded-2xl border border-red-700">
+                  <Zap className="h-12 w-12 text-red-400 mb-4" />
+                  <h3 className="text-xl font-bold mb-3 text-white">Rendimiento Extremo</h3>
+                  <p className="text-gray-300">
                     CPUs Intel Xeon, almacenamiento SSD NVMe y conectividad de 10Gbps para máximo rendimiento.
                   </p>
                 </div>

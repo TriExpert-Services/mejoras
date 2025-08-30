@@ -43,10 +43,10 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando plataforma VPS...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p className="text-gray-300">Cargando plataforma VPS...</p>
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <Navigation 
         currentPage={currentPage} 
         onNavigate={navigate} 
@@ -77,18 +77,18 @@ function App() {
         )}
         
         {currentPage === 'dashboard' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gray-900 min-h-screen">
             <VMDashboard />
           </div>
         )}
         
         {currentPage === 'plans' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gray-900 min-h-screen">
             <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                Planes de <span className="text-blue-600">VPS</span>
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                Planes de <span className="text-red-500">VPS</span>
               </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                 Servidores virtuales potentes con tecnología Proxmox. Aprovisionamiento automático y control total.
               </p>
             </div>
@@ -97,18 +97,18 @@ function App() {
         )}
         
         {currentPage === 'home' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gray-900 min-h-screen">
             <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                Bienvenido a <span className="text-blue-600">VPS Proxmox</span>
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                Bienvenido a <span className="text-red-500">VPS Proxmox</span>
               </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
                 Gestiona tus servidores virtuales desde un panel de control moderno y potente.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <button
                   onClick={() => navigate('plans')}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
                 >
                   Ver Planes VPS
                 </button>
@@ -122,26 +122,26 @@ function App() {
             </div>
             
             <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-white p-6 rounded-xl shadow-sm">
-                <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                  <span className="text-blue-600 text-xl">⚡</span>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700">
+                <div className="bg-red-900 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                  <span className="text-red-400 text-xl">⚡</span>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Alto Rendimiento</h3>
-                <p className="text-gray-600">Servidores con CPUs de última generación y almacenamiento SSD NVMe.</p>
+                <h3 className="text-lg font-semibold mb-2 text-white">Alto Rendimiento</h3>
+                <p className="text-gray-300">Servidores con CPUs de última generación y almacenamiento SSD NVMe.</p>
               </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm">
-                <div className="bg-green-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                  <span className="text-green-600 text-xl">🛡️</span>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700">
+                <div className="bg-green-900 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                  <span className="text-green-400 text-xl">🛡️</span>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Máxima Seguridad</h3>
-                <p className="text-gray-600">Backups automáticos, monitoreo 24/7 y protección DDoS incluida.</p>
+                <h3 className="text-lg font-semibold mb-2 text-white">Máxima Seguridad</h3>
+                <p className="text-gray-300">Backups automáticos, monitoreo 24/7 y protección DDoS incluida.</p>
               </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm">
-                <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                  <span className="text-purple-600 text-xl">🚀</span>
+              <div className="bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-700">
+                <div className="bg-purple-900 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                  <span className="text-purple-400 text-xl">🚀</span>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Aprovisionamiento Instantáneo</h3>
-                <p className="text-gray-600">Tu VPS estará listo en menos de 5 minutos después del pago.</p>
+                <h3 className="text-lg font-semibold mb-2 text-white">Aprovisionamiento Instantáneo</h3>
+                <p className="text-gray-300">Tu VPS estará listo en menos de 5 minutos después del pago.</p>
               </div>
             </div>
           </div>

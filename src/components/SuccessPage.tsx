@@ -17,42 +17,42 @@ export function SuccessPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="mx-auto w-16 h-16 bg-green-900 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="w-8 h-8 text-green-400" />
           </div>
-          <CardTitle className="text-2xl text-green-800">
+          <CardTitle className="text-2xl text-green-400">
             ¡Pago Exitoso!
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <Server className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-blue-800">
+          <div className="bg-red-900 p-4 rounded-lg border border-red-700">
+            <Server className="w-6 h-6 text-red-400 mx-auto mb-2" />
+            <p className="text-sm font-medium text-red-200">
               Tu VPS está siendo configurado
             </p>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-xs text-red-300 mt-1">
               Recibirás los detalles de acceso por correo electrónico
             </p>
           </div>
           
-          <p className="text-gray-600">
+          <p className="text-gray-300">
             Tu pago ha sido procesado correctamente. Tu servidor virtual 
             estará listo en unos minutos.
           </p>
           
           {sessionId && (
-            <div className="bg-gray-100 p-3 rounded-md">
-              <p className="text-xs text-gray-500 mb-1">ID de Transacción:</p>
-              <p className="text-sm font-mono text-gray-700 break-all">
+            <div className="bg-gray-800 p-3 rounded-md border border-gray-600">
+              <p className="text-xs text-gray-400 mb-1">ID de Transacción:</p>
+              <p className="text-sm font-mono text-gray-200 break-all">
                 {sessionId}
               </p>
             </div>
           )}
           
-          <Button onClick={handleContinue} className="w-full bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleContinue} className="w-full bg-red-600 hover:bg-red-700">
             Ver mis VPS
           </Button>
         </CardContent>

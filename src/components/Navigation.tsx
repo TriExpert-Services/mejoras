@@ -30,7 +30,7 @@ export function Navigation({ currentPage, onNavigate, isAdmin, user }: Navigatio
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+    <nav className="fixed top-0 left-0 right-0 bg-gray-800 border-b border-gray-700 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -38,12 +38,12 @@ export function Navigation({ currentPage, onNavigate, isAdmin, user }: Navigatio
             className="flex items-center cursor-pointer"
             onClick={() => onNavigate('home')}
           >
-            <div className="bg-blue-600 p-2 rounded-lg mr-3">
+            <div className="bg-red-600 p-2 rounded-lg mr-3">
               <Server className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">VPS Proxmox</h1>
-              <p className="text-xs text-gray-500">Plataforma de Gestión</p>
+              <h1 className="text-xl font-bold text-white">VPS Proxmox</h1>
+              <p className="text-xs text-gray-400">Plataforma de Gestión</p>
             </div>
           </div>
 
@@ -59,8 +59,8 @@ export function Navigation({ currentPage, onNavigate, isAdmin, user }: Navigatio
                   onClick={() => onNavigate(item.id)}
                   className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      ? 'bg-red-900 text-red-200'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
                   }`}
                 >
                   <Icon className="h-4 w-4 mr-2" />
@@ -75,12 +75,12 @@ export function Navigation({ currentPage, onNavigate, isAdmin, user }: Navigatio
             <div className="hidden sm:flex items-center space-x-3">
               <div className="flex items-center">
                 <User className="h-4 w-4 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-700 max-w-40 truncate">
+                <span className="text-sm text-gray-300 max-w-40 truncate">
                   {user.email}
                 </span>
               </div>
               {isAdmin && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900 text-red-200">
                   Admin
                 </span>
               )}
@@ -99,7 +99,7 @@ export function Navigation({ currentPage, onNavigate, isAdmin, user }: Navigatio
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden border-t border-gray-200">
+        <div className="md:hidden border-t border-gray-700">
           <div className="flex justify-around py-2">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -111,8 +111,8 @@ export function Navigation({ currentPage, onNavigate, isAdmin, user }: Navigatio
                   onClick={() => onNavigate(item.id)}
                   className={`flex flex-col items-center px-3 py-2 text-xs ${
                     isActive
-                      ? 'text-blue-600'
-                      : 'text-gray-500'
+                      ? 'text-red-400'
+                      : 'text-gray-400'
                   }`}
                 >
                   <Icon className="h-4 w-4 mb-1" />
