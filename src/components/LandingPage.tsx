@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useProducts } from '../hooks/useProducts';
 import { LoginForm } from './auth/LoginForm';
 import { SignupForm } from './auth/SignupForm';
 import { Button } from './ui/button';
@@ -20,6 +21,12 @@ interface LandingPageProps {
 export function LandingPage({ onNavigate }: LandingPageProps) {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [showAuthForm, setShowAuthForm] = useState(false);
+  const { products, loading: productsLoading } = useProducts();
+
+  // Get the three main products for pricing preview
+  const basicProduct = products.find(p => p.name.toLowerCase().includes('básico'));
+  const premiumProduct = products.find(p => p.name.toLowerCase().includes('premium'));
+  const enterpriseProduct = products.find(p => p.name.toLowerCase().includes('enterprise'));
 
   return (
     <div className="min-h-screen bg-white">
@@ -220,44 +227,65 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               </p>
               
               <div className="grid md:grid-cols-3 gap-6 mb-12">
-                <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-blue-200 transition-colors">
-                  <h3 className="text-xl font-bold mb-2">VPS Básico</h3>
-                  <p className="text-3xl font-bold text-blue-600 mb-4">$6<span className="text-lg text-gray-500">/mes</span></p>
-                  <p className="text-gray-600 mb-4">Perfecto para comenzar</p>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>✓ 1 vCPU</li>
-                    <li>✓ 2 GB RAM</li>
-                    <li>✓ 40 GB SSD</li>
-                    <li>✓ 2 TB Bandwidth</li>
-                  </ul>
-                </div>
-                
-                <div className="bg-white p-8 rounded-2xl shadow-lg border-2 border-blue-500 relative">
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
-                    Más Popular
+                {productsLoading ? (
+                  <div className="col-span-3 text-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-gray-500 text-sm">Cargando planes...</p>
                   </div>
-                  <h3 className="text-xl font-bold mb-2">VPS Premium</h3>
-                  <p className="text-3xl font-bold text-blue-600 mb-4">$10.50<span className="text-lg text-gray-500">/mes</span></p>
-                  <p className="text-gray-600 mb-4">Para aplicaciones serias</p>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>✓ 4 vCPUs</li>
-                    <li>✓ 8 GB RAM</li>
-                    <li>✓ 160 GB SSD</li>
-                    <li>✓ 8 TB Bandwidth</li>
-                  </ul>
-                </div>
-                
-                <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-purple-200 transition-colors">
-                  <h3 className="text-xl font-bold mb-2">VPS Enterprise</h3>
-                  <p className="text-3xl font-bold text-purple-600 mb-4">$25<span className="text-lg text-gray-500">/mes</span></p>
-                  <p className="text-gray-600 mb-4">Máximo rendimiento</p>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>✓ 12 vCPUs</li>
-                    <li>✓ 32 GB RAM</li>
-                    <li>✓ 640 GB SSD</li>
-                    <li>✓ 24 TB Bandwidth</li>
-                  </ul>
-                </div>
+                ) : (
+                  <>
+                    {/* Basic Plan */}
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-blue-200 transition-colors">
+                      <h3 className="text-xl font-bold mb-2">{basicProduct?.name || 'VPS Básico'}</h3>
+                      <p className="text-3xl font-bold text-blue-600 mb-4">
+                        ${basicProduct?.price.toFixed(2) || '6.00'}
+                        <span className="text-lg text-gray-500">/mes</span>
+                      </p>
+                      <p className="text-gray-600 mb-4">Perfecto para comenzar</p>
+                      <ul className="text-sm text-gray-600 space-y-2">
+                        <li>✓ {basicProduct?.specs?.cpu || '1 vCPU'}</li>
+                        <li>✓ {basicProduct?.specs?.ram || '2 GB RAM'}</li>
+                        <li>✓ {basicProduct?.specs?.disk || '40 GB SSD'}</li>
+                        <li>✓ {basicProduct?.specs?.bandwidth || '2 TB'}</li>
+                      </ul>
+                    </div>
+                    
+                    {/* Premium Plan */}
+                    <div className="bg-white p-8 rounded-2xl shadow-lg border-2 border-blue-500 relative">
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
+                        Más Popular
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">{premiumProduct?.name || 'VPS Premium'}</h3>
+                      <p className="text-3xl font-bold text-blue-600 mb-4">
+                        ${premiumProduct?.price.toFixed(2) || '10.50'}
+                        <span className="text-lg text-gray-500">/mes</span>
+                      </p>
+                      <p className="text-gray-600 mb-4">Para aplicaciones serias</p>
+                      <ul className="text-sm text-gray-600 space-y-2">
+                        <li>✓ {premiumProduct?.specs?.cpu || '4 vCPUs'}</li>
+                        <li>✓ {premiumProduct?.specs?.ram || '8 GB RAM'}</li>
+                        <li>✓ {premiumProduct?.specs?.disk || '160 GB SSD'}</li>
+                        <li>✓ {premiumProduct?.specs?.bandwidth || '8 TB'}</li>
+                      </ul>
+                    </div>
+                    
+                    {/* Enterprise Plan */}
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-purple-200 transition-colors">
+                      <h3 className="text-xl font-bold mb-2">{enterpriseProduct?.name || 'VPS Enterprise'}</h3>
+                      <p className="text-3xl font-bold text-purple-600 mb-4">
+                        ${enterpriseProduct?.price.toFixed(2) || '25.00'}
+                        <span className="text-lg text-gray-500">/mes</span>
+                      </p>
+                      <p className="text-gray-600 mb-4">Máximo rendimiento</p>
+                      <ul className="text-sm text-gray-600 space-y-2">
+                        <li>✓ {enterpriseProduct?.specs?.cpu || '12 vCPUs'}</li>
+                        <li>✓ {enterpriseProduct?.specs?.ram || '32 GB RAM'}</li>
+                        <li>✓ {enterpriseProduct?.specs?.disk || '640 GB SSD'}</li>
+                        <li>✓ {enterpriseProduct?.specs?.bandwidth || '24 TB'}</li>
+                      </ul>
+                    </div>
+                  </>
+                )}
               </div>
               
               <Button
