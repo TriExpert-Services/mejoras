@@ -49,13 +49,19 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vmPermanentlyGone, setVmPermanentlyGone] = useState(false);
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchMetrics();
     
     // Auto-refresh every 5 seconds for real-time metrics
     const interval = setInterval(fetchMetrics, 5000);
-    return () => clearInterval(interval);
+    setIntervalId(interval);
+    return () => {
+      clearInterval(interval);
+      setIntervalId(null);
+    };
   }, [vmId]);
 
   const fetchMetrics = async () => {
@@ -95,6 +101,17 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
 
     } catch (error: any) {
       console.error('Error fetching VM metrics:', error);
+      
+      // Handle VM not found error gracefully
+      if (error.message === 'VM not found') {
+        setVmPermanentlyGone(true);
+        if (intervalId) {
+          clearInterval(intervalId);
+          setIntervalId(null);
+        }
+        return;
+      }
+      
       setError(error.message);
     } finally {
       setRefreshing(false);
@@ -113,6 +130,11 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
   };
+
+  // If VM is permanently gone, don't render anything
+  if (vmPermanentlyGone) {
+    return null;
+  }
 
   const formatBytes = (mb: number) => {
     if (mb >= 1024) {
