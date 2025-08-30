@@ -18,7 +18,7 @@ export interface Product {
 export const products: Product[] = [
   {
     id: 'vps-basic-1',
-    priceId: 'price_1S05dfJkHWBWzjwgAERfprhv',
+    priceId: 'price_1S1eJ0JkHWBWzjwgVcQlj38g',
     name: 'VPS Básico',
     description: 'Perfecto para proyectos pequeños y desarrollo',
     mode: 'subscription',
@@ -34,7 +34,7 @@ export const products: Product[] = [
   },
   {
     id: 'vps-standard-1',
-    priceId: 'price_1S04lsJkHWBWzjwgX0EdVFB9',
+    priceId: 'price_1S1eNaJkHWBWzjwgqqUih4iB',
     name: 'VPS Standard',
     description: 'Ideal para sitios web y aplicaciones medianas',
     mode: 'subscription',
@@ -50,7 +50,7 @@ export const products: Product[] = [
   },
   {
     id: 'vps-premium-1',
-    priceId: 'price_1RzJWNJkHWBWzjwgU8cfOL59',
+    priceId: 'price_1S1eP2JkHWBWzjwgyoi0mSUW',
     name: 'VPS Premium',
     description: 'Para aplicaciones de alto rendimiento',
     mode: 'subscription',
@@ -66,7 +66,7 @@ export const products: Product[] = [
   },
   {
     id: 'vps-pro-1',
-    priceId: 'price_1RyMvTJkHWBWzjwgv48vwPF9',
+    priceId: 'price_1S1eQ0JkHWBWzjwgou10GBIC',
     name: 'VPS Pro',
     description: 'Máximo rendimiento para proyectos empresariales',
     mode: 'subscription',
@@ -82,7 +82,7 @@ export const products: Product[] = [
   },
   {
     id: 'vps-enterprise-1',
-    priceId: 'price_1RyMtyJkHWBWzjwgUiFinRxB',
+    priceId: 'price_1S1eR4JkHWBWzjwgRUrEqCu5',
     name: 'VPS Enterprise',
     description: 'Solución completa para grandes aplicaciones',
     mode: 'subscription',
