@@ -13,9 +13,9 @@ import { supabase } from '../lib/supabase';
 import { products } from '../stripe-config';
 import { templates } from '../template-config';
 import { 
-  Users, 
-  Server, 
-  DollarSign, 
+  Users,
+  Server,
+  DollarSign,
   Activity,
   RefreshCw,
   Settings,
