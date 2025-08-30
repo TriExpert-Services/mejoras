@@ -50,40 +50,91 @@ export function VMDashboard() {
   const [vms, setVms] = useState<VM[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    fetchUserData();
-    
-    // Auto-refresh VM data every 15 seconds
-    const dataRefreshInterval = setInterval(fetchUserData, 15000);
-    
-    // Set up real-time subscription for VMs
-    const vmSubscription = supabase
-      .channel('user-vms')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'vms',
-          filter: `user_id=eq.${supabase.auth.getUser().then(r => r.data.user?.id)}`
-        },
-        () => fetchUserData()
-      )
-      .subscribe();
-
-    return () => {
-      clearInterval(dataRefreshInterval);
-      vmSubscription.unsubscribe();
+    const setupComponent = async () => {
+      // Initial data fetch
+      await fetchUserData();
+      
+      // Get user for real-time subscription
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      // Set up real-time subscription for VMs
+      const vmSubscription = supabase
+        .channel('user-vms')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'vms',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => fetchUserDataSilent()
+        )
+        .subscribe();
+      
+      // Auto-refresh VM data every 15 seconds
+      const dataRefreshInterval = setInterval(fetchUserDataSilent, 15000);
+      
+      return () => {
+        clearInterval(dataRefreshInterval);
+        vmSubscription.unsubscribe();
+      };
     };
+    
+    setupComponent();
   }, []);
 
-  const fetchUserData = async () => {
-    // Only show loading spinner on initial load
-    if (vms.length === 0 && orders.length === 0) {
-      setLoading(true);
+  const fetchUserDataSilent = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch user's VMs
+      const { data: vmsData, error: vmsError } = await supabase
+        .from('vms')
+        .select(`
+          *,
+          vm_specs (name, monthly_price)
+        `)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (vmsError) {
+        console.error('Error fetching VMs:', vmsError);
+      } else {
+        setVms(vmsData || []);
+      }
+
+      // Fetch user's orders
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          vm_specs (name)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
+      } else {
+        setOrders(ordersData || []);
+      }
+
+    } catch (error) {
+      console.error('Error fetching user data:', error);
     }
+  };
+
+  const fetchUserData = async () => {
+    setRefreshing(true);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -126,6 +177,7 @@ export function VMDashboard() {
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
+      setRefreshing(false);
       setLoading(false);
     }
   };
@@ -354,8 +406,7 @@ export function VMDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setRefreshing(true);
-                          fetchUserDataSilent();
+                          fetchUserData();
                         }}
                         disabled={actionLoading[vm.id]}
                       >

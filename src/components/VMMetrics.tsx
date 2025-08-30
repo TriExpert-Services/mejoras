@@ -47,6 +47,7 @@ interface VMMetricsProps {
 export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
   const [metrics, setMetrics] = useState<VMMetrics[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
     if (metrics.length === 0) {
       setLoading(true);
     }
+    setRefreshing(true);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -95,6 +97,7 @@ export function VMMetrics({ vmId, showAll = false }: VMMetricsProps) {
       console.error('Error fetching VM metrics:', error);
       setError(error.message);
     } finally {
+      setRefreshing(false);
       setLoading(false);
     }
   };
