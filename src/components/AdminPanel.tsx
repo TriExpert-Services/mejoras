@@ -695,14 +695,7 @@ export function AdminPanel() {
                       size="sm"
                       onClick={fetchProxmoxStats}
                       disabled={proxmoxLoading}
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${(proxmoxLoading || refreshing) ? 'animate-spin' : ''}`} />
-                      Reintentar Conexión
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        return renderContent();
           </div>
         );
 
