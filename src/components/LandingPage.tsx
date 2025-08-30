@@ -222,7 +222,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               <div className="grid md:grid-cols-3 gap-6 mb-12">
                 <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-blue-200 transition-colors">
                   <h3 className="text-xl font-bold mb-2">VPS Básico</h3>
-                  <p className="text-3xl font-bold text-blue-600 mb-4">$20<span className="text-lg text-gray-500">/mes</span></p>
+                  <p className="text-3xl font-bold text-blue-600 mb-4">$6<span className="text-lg text-gray-500">/mes</span></p>
                   <p className="text-gray-600 mb-4">Perfecto para comenzar</p>
                   <ul className="text-sm text-gray-600 space-y-2">
                     <li>✓ 1 vCPU</li>
@@ -237,7 +237,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                     Más Popular
                   </div>
                   <h3 className="text-xl font-bold mb-2">VPS Premium</h3>
-                  <p className="text-3xl font-bold text-blue-600 mb-4">$24<span className="text-lg text-gray-500">/mes</span></p>
+                  <p className="text-3xl font-bold text-blue-600 mb-4">$10.50<span className="text-lg text-gray-500">/mes</span></p>
                   <p className="text-gray-600 mb-4">Para aplicaciones serias</p>
                   <ul className="text-sm text-gray-600 space-y-2">
                     <li>✓ 4 vCPUs</li>
@@ -249,7 +249,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                 
                 <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-purple-200 transition-colors">
                   <h3 className="text-xl font-bold mb-2">VPS Enterprise</h3>
-                  <p className="text-3xl font-bold text-purple-600 mb-4">$50<span className="text-lg text-gray-500">/mes</span></p>
+                  <p className="text-3xl font-bold text-purple-600 mb-4">$25<span className="text-lg text-gray-500">/mes</span></p>
                   <p className="text-gray-600 mb-4">Máximo rendimiento</p>
                   <ul className="text-sm text-gray-600 space-y-2">
                     <li>✓ 12 vCPUs</li>
