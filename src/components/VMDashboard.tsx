@@ -525,6 +525,14 @@ export function VMDashboard() {
                             Detener
                           </Button>
                           <Button
+                            size="sm"
+                            onClick={() => setVncViewer({ vmId: vm.id, vmName: vm.name })}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Consola VNC
+                          </Button>
+                          <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setCurrentSection('metrics')}
