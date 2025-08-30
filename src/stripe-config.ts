@@ -22,7 +22,7 @@ export const products: Product[] = [
     name: 'VPS Básico',
     description: 'Perfecto para proyectos pequeños y desarrollo',
     mode: 'subscription',
-    price: 20.00,
+    price: 6.00,
     defaultTemplate: 101, // Ubuntu 24.04 LTS
     allowedTemplates: [101, 102, 103, 104, 105], // Ubuntu y Debian
     specs: {
@@ -38,7 +38,7 @@ export const products: Product[] = [
     name: 'VPS Standard',
     description: 'Ideal para sitios web y aplicaciones medianas',
     mode: 'subscription',
-    price: 20.00,
+    price: 7.50,
     defaultTemplate: 101, // Ubuntu 24.04 LTS
     allowedTemplates: [101, 102, 103, 104, 105, 107], // Ubuntu, Debian, AlmaLinux
     specs: {
@@ -54,7 +54,7 @@ export const products: Product[] = [
     name: 'VPS Premium',
     description: 'Para aplicaciones de alto rendimiento',
     mode: 'subscription',
-    price: 24.00,
+    price: 10.50,
     defaultTemplate: 101, // Ubuntu 24.04 LTS
     allowedTemplates: [101, 102, 103, 104, 105, 107, 108], // Todas las plantillas
     specs: {
@@ -70,7 +70,7 @@ export const products: Product[] = [
     name: 'VPS Pro',
     description: 'Máximo rendimiento para proyectos empresariales',
     mode: 'subscription',
-    price: 50.00,
+    price: 16.50,
     defaultTemplate: 107, // AlmaLinux 9.6 (empresarial)
     allowedTemplates: [101, 102, 103, 104, 105, 107, 108], // Todas las plantillas
     specs: {
@@ -86,7 +86,7 @@ export const products: Product[] = [
     name: 'VPS Enterprise',
     description: 'Solución completa para grandes aplicaciones',
     mode: 'subscription',
-    price: 50.00,
+    price: 25.00,
     defaultTemplate: 107, // AlmaLinux 9.6 (empresarial)
     allowedTemplates: [101, 102, 103, 104, 105, 107, 108], // Todas las plantillas
     specs: {
