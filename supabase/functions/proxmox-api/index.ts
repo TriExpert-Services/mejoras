@@ -35,13 +35,19 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: getUserError } = await supabase.auth.getUser(token);
 
-    if (getUserError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Check if this is a service role key (for internal function calls)
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (token !== serviceRoleKey) {
+      // For regular user tokens, validate normally
+      const { data: { user }, error: getUserError } = await supabase.auth.getUser(token);
+
+      if (getUserError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // DEBUG: Log environment variables
