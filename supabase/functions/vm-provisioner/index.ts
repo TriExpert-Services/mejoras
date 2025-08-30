@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { orderId, action } = await req.json();
     const { orderId, action, templateId } = await req.json();
 
     if (!orderId) {
