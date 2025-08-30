@@ -4,15 +4,6 @@ import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Monitor, Maximize2, RotateCcw, X, AlertCircle } from 'lucide-react';
 
-// Global RFB type definition
-declare global {
-  interface Window {
-    RFB: any;
-    noVNCLoaded?: boolean;
-    noVNCLoadError?: boolean;
-  }
-}
-
 interface VNCViewerProps {
   vmId: string;
   vmName: string;
@@ -26,9 +17,33 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
   const [error, setError] = useState<string | null>(null);
   const [rfb, setRfb] = useState<any>(null);
 
+  // Check if noVNC is loaded
+  const isNoVNCReady = () => {
+    return typeof window.RFB === 'function';
+  };
+
+  // Wait for noVNC to be available
+  const waitForNoVNC = async (maxAttempts = 20): Promise<boolean> => {
+    for (let i = 0; i < maxAttempts; i++) {
+      if (isNoVNCReady()) {
+        console.log('noVNC library is ready');
+        return true;
+      }
+      console.log(`Waiting for noVNC... attempt ${i + 1}/${maxAttempts}`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    return false;
+  };
+
   const connectVNC = async () => {
     if (!vncRef.current) {
       setError('VNC container not ready');
+      return;
+    }
+
+    // Check if noVNC is loaded
+    if (!isNoVNCReady()) {
+      setError('noVNC library not loaded. Please refresh the page.');
       return;
     }
 
@@ -141,18 +156,25 @@ export function VNCViewer({ vmId, vmName, onClose }: VNCViewerProps) {
   };
 
   useEffect(() => {
-    // Auto-connect when component mounts
-    const timer = setTimeout(() => {
-      connectVNC();
-    }, 500);
+    // Wait for noVNC to load, then auto-connect
+    const initializeVNC = async () => {
+      const isReady = await waitForNoVNC();
+      if (isReady) {
+        connectVNC();
+      } else {
+        setError('noVNC library failed to load. Please refresh the page and try again.');
+        setIsConnecting(false);
+      }
+    };
+
+    initializeVNC();
 
     return () => {
-      clearTimeout(timer);
       if (rfb) {
         rfb.disconnect();
       }
     };
-  }, [vmId]);
+  }, [vmId, rfb]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
