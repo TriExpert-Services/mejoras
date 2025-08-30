@@ -1067,3 +1067,5 @@ export function AdminPanel() {
     </div>
   );
 }
+
+export { AdminPanel }
