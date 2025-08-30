@@ -965,7 +965,7 @@ export function AdminPanel() {
                   <Button
                     variant="outline"
                     onClick={() => alert('Función de mantenimiento en desarrollo')}
-                    className="flex items-center justify-center border-red-600 text-red-400 hover:bg-red-900"
+                    className="bg-red-600 hover:bg-red-700"
                   >
                     <Settings className="h-4 w-4 mr-2" />
                     Modo Mantenimiento
@@ -976,7 +976,7 @@ export function AdminPanel() {
                       manualRefresh();
                     }}
                     disabled={refreshing}
-                    className="flex items-center justify-center border-red-600 text-red-400 hover:bg-red-900"
+                    className="bg-red-600 hover:bg-red-700"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                     Actualizar Todo
@@ -984,7 +984,7 @@ export function AdminPanel() {
                   <Button
                     variant="outline"
                     onClick={() => alert('Función de backup en desarrollo')}
-                    className="flex items-center justify-center border-red-600 text-red-400 hover:bg-red-900"
+                    className="bg-red-600 hover:bg-red-700"
                   >
                     <HardDrive className="h-4 w-4 mr-2" />
                     Backup Sistema
