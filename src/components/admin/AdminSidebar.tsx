@@ -5,9 +5,9 @@ import { UserSettings } from '../user/UserSettings';
 import { UserSupport } from '../user/UserSupport';
 import { VMMetrics } from '../VMMetrics';
 import { VNCViewer } from '../VNCViewer';
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { supabase } from '../lib/supabase';
 import { 
   Server, 
