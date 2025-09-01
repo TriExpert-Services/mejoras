@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// At the top of UserManagement.tsx
+import { AlertCircle } from 'lucide-react';import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
