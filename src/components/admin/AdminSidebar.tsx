@@ -1,6 +1,5 @@
-import { Dispatch, SetStateAction, RefAttributes } from 'react';
-import { ForwardRefExoticComponent, LucideProps } from 'lucide-react'; // Or your icon library
-import React from 'react';
+import React, { Dispatch, SetStateAction, ForwardRefExoticComponent, RefAttributes } from 'react';
+import { LucideProps } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { 
   LayoutDashboard,
@@ -16,15 +15,9 @@ import {
   FileText
 } from 'lucide-react';
 
-// In AdminSidebar.tsx or wherever the props are defined
 interface AdminSidebarProps {
-  activeTab: string;
-  setActiveTab: Dispatch<SetStateAction<string>>;
-  menuItems: {
-    id: string;
-    label: string;
-    icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
-  }[];
+  currentSection: string;
+  onSectionChange: Dispatch<SetStateAction<string>>;
 }
 
 export function AdminSidebar({ currentSection, onSectionChange }: AdminSidebarProps) {
