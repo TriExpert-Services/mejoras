@@ -14,9 +14,12 @@ import {
   FileText
 } from 'lucide-react';
 
+// In AdminSidebar.tsx or wherever the props are defined
 interface AdminSidebarProps {
-  currentSection: string;
-  onSectionChange: (section: string) => void;
+  // ... other props
+  activeTab: string; // Add this line
+  setActiveTab: Dispatch<SetStateAction<string>>; // This already exists
+  menuItems: { ... }[]; // This already exists
 }
 
 export function AdminSidebar({ currentSection, onSectionChange }: AdminSidebarProps) {
