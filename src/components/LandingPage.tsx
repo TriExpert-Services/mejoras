@@ -39,7 +39,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                 <Server className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">VPS Proxmox</h1>
+                <h1 className="text-xl font-bold text-gray-900">VPS TriExpert Services</h1>
                 <p className="text-xs text-gray-500">Servidores Virtuales</p>
               </div>
             </div>
@@ -104,7 +104,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               
               <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto">
                 Servidores virtuales de <span className="text-red-400 font-semibold">alto rendimiento</span> con 
-                tecnología Proxmox. Aprovisionamiento automático en <span className="text-green-400 font-semibold">menos de 5 minutos</span>.
+                tecnología Avanzada. Aprovisionamiento automático en <span className="text-green-400 font-semibold">menos de 5 minutos</span>.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
