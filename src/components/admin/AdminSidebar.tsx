@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction, RefAttributes } from 'react';
+import { ForwardRefExoticComponent, LucideProps } from 'lucide-react'; // Or your icon library
 import React from 'react';
 import { cn } from '../../lib/utils';
 import { 
