@@ -238,14 +238,14 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                     <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-blue-200 transition-colors">
                       <h3 className="text-xl font-bold mb-2">{basicProduct?.name || 'VPS Básico'}</h3>
                       <p className="text-3xl font-bold text-blue-600 mb-4">
-                        ${basicProduct?.price.toFixed(2) || '6.00'}
+                        ${basicProduct?.price.toFixed(2) || '5.00'}
                         <span className="text-lg text-gray-500">/mes</span>
                       </p>
                       <p className="text-gray-600 mb-4">Perfecto para comenzar</p>
                       <ul className="text-sm text-gray-600 space-y-2">
                         <li>✓ {basicProduct?.specs?.cpu || '1 vCPU'}</li>
                         <li>✓ {basicProduct?.specs?.ram || '2 GB RAM'}</li>
-                        <li>✓ {basicProduct?.specs?.disk || '40 GB SSD'}</li>
+                        <li>✓ {basicProduct?.specs?.disk || '50 GB SSD'}</li>
                         <li>✓ {basicProduct?.specs?.bandwidth || '2 TB'}</li>
                       </ul>
                     </div>
@@ -257,14 +257,14 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                       </div>
                       <h3 className="text-xl font-bold mb-2">{premiumProduct?.name || 'VPS Premium'}</h3>
                       <p className="text-3xl font-bold text-blue-600 mb-4">
-                        ${premiumProduct?.price.toFixed(2) || '10.50'}
+                        ${premiumProduct?.price.toFixed(2) || '9.00'}
                         <span className="text-lg text-gray-500">/mes</span>
                       </p>
                       <p className="text-gray-600 mb-4">Para aplicaciones serias</p>
                       <ul className="text-sm text-gray-600 space-y-2">
                         <li>✓ {premiumProduct?.specs?.cpu || '4 vCPUs'}</li>
                         <li>✓ {premiumProduct?.specs?.ram || '8 GB RAM'}</li>
-                        <li>✓ {premiumProduct?.specs?.disk || '160 GB SSD'}</li>
+                        <li>✓ {premiumProduct?.specs?.disk || '200 GB SSD'}</li>
                         <li>✓ {premiumProduct?.specs?.bandwidth || '8 TB'}</li>
                       </ul>
                     </div>
@@ -273,14 +273,14 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
                     <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100 hover:border-purple-200 transition-colors">
                       <h3 className="text-xl font-bold mb-2">{enterpriseProduct?.name || 'VPS Enterprise'}</h3>
                       <p className="text-3xl font-bold text-purple-600 mb-4">
-                        ${enterpriseProduct?.price.toFixed(2) || '25.00'}
+                        ${enterpriseProduct?.price.toFixed(2) || '22.00'}
                         <span className="text-lg text-gray-500">/mes</span>
                       </p>
                       <p className="text-gray-600 mb-4">Máximo rendimiento</p>
                       <ul className="text-sm text-gray-600 space-y-2">
                         <li>✓ {enterpriseProduct?.specs?.cpu || '12 vCPUs'}</li>
                         <li>✓ {enterpriseProduct?.specs?.ram || '32 GB RAM'}</li>
-                        <li>✓ {enterpriseProduct?.specs?.disk || '640 GB SSD'}</li>
+                        <li>✓ {enterpriseProduct?.specs?.disk || '800 GB SSD'}</li>
                         <li>✓ {enterpriseProduct?.specs?.bandwidth || '24 TB'}</li>
                       </ul>
                     </div>
