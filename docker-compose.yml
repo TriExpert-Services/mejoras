@@ -11,7 +11,7 @@ services:
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJobmlsZ21temVkbWhobWRhc3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMDU2MTQsImV4cCI6MjA2OTY4MTYxNH0.TIdQqw4_2yGfe8NCCS05OwgU6SQmt5MCTdtB1E92NBk}
     container_name: vps-proxmox-platform
     ports:
-      - "80:80"
+      - "7021:80"
     environment:
       - NODE_ENV=production
     restart: unless-stopped
