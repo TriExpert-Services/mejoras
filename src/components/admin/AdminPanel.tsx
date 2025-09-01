@@ -374,11 +374,7 @@ export const AdminPanel: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="flex">
-        <AdminSidebar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab}
-          menuItems={menuItems}
-        />
+        <AdminSidebar currentSection={activeTab} onSectionChange={setActiveTab} />
         
         <main className="flex-1 p-6 ml-64">
           {renderContent()}
