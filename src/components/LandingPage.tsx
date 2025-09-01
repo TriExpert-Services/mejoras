@@ -99,7 +99,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
               </div>
               
               <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-                VPS <span className="text-red-500">Proxmox</span>
+                VPS <span className="text-red-500">TriExpert Services</span>
               </h1>
               
               <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto">
